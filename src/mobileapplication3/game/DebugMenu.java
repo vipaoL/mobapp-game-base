@@ -66,7 +66,7 @@ public class DebugMenu extends GenericMenu implements Runnable {
                 repaint();
                 tick();
 
-                sleep = Main.TICK_DURATION - (System.currentTimeMillis() - start);
+                sleep = GameplayCanvas.TICK_DURATION - (System.currentTimeMillis() - start);
                 sleep = Math.max(sleep, 0);
             } else {
                 sleep = 200;

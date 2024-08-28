@@ -26,6 +26,7 @@ import utils.MobappGameSettings;
  * @author vipaol
  */
 public class GameplayCanvas extends Container implements Runnable {
+    public static final int TICK_DURATION = 50;
     private static final String[] MENU_HINT = {"MENU:", "here(touch),", "D, #"};
     private static final String[] PAUSE_HINT = {"PAUSE:", "here(touch), *,", "B, right soft"};
     private static final int GAME_SPEED_MULTIPLIER = 2;
@@ -176,7 +177,7 @@ public class GameplayCanvas extends Container implements Runnable {
     
     private void setDefaultWorld() {
         log("gCanv:reading world");
-        PhysicsFileReader reader = new PhysicsFileReader("/void.phy");
+        PhysicsFileReader reader = new PhysicsFileReader("/emptyworld.phy");
         setLoadingProgress(25);
         
         log("gCanv:loading world");
@@ -190,7 +191,9 @@ public class GameplayCanvas extends Container implements Runnable {
         initWorld();
 
         log("gCanv:closing reader");
-        reader.close();
+        try {
+            reader.close();
+        } catch (Exception ex) { }
     }
 
     // game thread with main cycle and preparing
@@ -242,7 +245,7 @@ public class GameplayCanvas extends Container implements Runnable {
 
                     start = System.currentTimeMillis();
                     boolean bigTick = false;
-                    if (!unlimitFPS || start - lastBigTickTime > Main.TICK_DURATION) {
+                    if (!unlimitFPS || start - lastBigTickTime > TICK_DURATION) {
                     	lastBigTickTime = start;
                     	bigTick = true;
                     }
@@ -482,7 +485,7 @@ public class GameplayCanvas extends Container implements Runnable {
                     
                     Thread.yield();
 
-                    sleep = Main.TICK_DURATION - (System.currentTimeMillis() - start);
+                    sleep = TICK_DURATION - (System.currentTimeMillis() - start);
                     sleep = Math.max(sleep, 0);
                 } else {
                     // if paused

@@ -6,6 +6,7 @@
 package mobileapplication3.game;
 
 import mobileapplication3.platform.Logger;
+import mobileapplication3.platform.Platform;
 import mobileapplication3.platform.ui.Graphics;
 import mobileapplication3.platform.ui.RootContainer;
 import mobileapplication3.ui.Keys;
@@ -71,7 +72,7 @@ public class MenuCanvas extends GenericMenu implements Runnable {
             if (!isPaused) {
                 start = System.currentTimeMillis();
                 repaint(); // refresh picture on screen
-                sleep = Main.TICK_DURATION - (System.currentTimeMillis() - start);
+                sleep = GameplayCanvas.TICK_DURATION - (System.currentTimeMillis() - start);
                 sleep = Math.max(sleep, 0);
             } else {
                 sleep = 100;
@@ -155,7 +156,7 @@ public class MenuCanvas extends GenericMenu implements Runnable {
         }
         if (selected == 6) { // Exit
             isStopped = true;
-            Main.exit();
+            Platform.exit();
         }
     }
     

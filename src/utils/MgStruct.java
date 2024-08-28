@@ -9,7 +9,6 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import mobileapplication3.game.Main;
 import mobileapplication3.platform.FileUtils;
 import mobileapplication3.platform.Logger;
 import mobileapplication3.platform.Platform;
@@ -49,7 +48,7 @@ public class MgStruct {
         Logger.log("MGStruct constructor");
         if (!isInited) {
             Logger.log("mgs init");
-            for (int i = 1; readRes("/" + i + ".mgstruct"); i++) {
+            for (int i = 1; readRes("/s" + i + ".mgstruct"); i++) {
                 Logger.log(i + ".mgstruct");
             }
 
@@ -102,7 +101,7 @@ public class MgStruct {
             } catch (NullPointerException ex) {
                 ex.printStackTrace();
             } catch (NoClassDefFoundError err) {
-                Main.showAlert(err);
+                Platform.showError(err);
                 return false;
             }
             if (dis != null) {

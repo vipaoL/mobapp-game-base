@@ -101,7 +101,7 @@ public class AboutScreen extends GenericMenu implements Runnable {
 
     public void destroyApp(boolean unconditional) {
         isStopped = true;
-        Main.exit();
+        Platform.exit();
     }
     
     public void setIsPaused(boolean isPaused) {
@@ -111,15 +111,6 @@ public class AboutScreen extends GenericMenu implements Runnable {
     public void run() {
         long sleep;
         long start;
-        
-        if (Main.PRE_VERSION >= 0) {
-            for (int i = 0; i < MENU_OPTS.length; i++) {
-                if (MENU_OPTS[i].startsWith("Version: ")) {
-                    MENU_OPTS[i] += "-pre" + Main.PRE_VERSION;
-                    break;
-                }
-            }
-        }
         String commitHash = Platform.getAppProperty("Commit");
         if (commitHash != null) {
             for (int i = 0; i < MENU_OPTS.length; i++) {
@@ -134,7 +125,7 @@ public class AboutScreen extends GenericMenu implements Runnable {
             if (!isPaused) {
                 start = System.currentTimeMillis();
                 repaint();
-                sleep = Main.TICK_DURATION - (System.currentTimeMillis() - start);
+                sleep = GameplayCanvas.TICK_DURATION - (System.currentTimeMillis() - start);
                 sleep = Math.max(sleep, 0);
             } else {
                 sleep = 200;
@@ -215,7 +206,7 @@ public class AboutScreen extends GenericMenu implements Runnable {
     void openLink() {
         Logger.log(URL);
         if (Platform.platformRequest(URL)) {
-            Main.exit();
+            Platform.exit();
         }
     }
 

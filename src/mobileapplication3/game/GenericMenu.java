@@ -9,6 +9,7 @@ import java.util.Vector;
 
 import mobileapplication3.platform.Logger;
 import mobileapplication3.platform.Mathh;
+import mobileapplication3.platform.Platform;
 import mobileapplication3.platform.ui.Font;
 import mobileapplication3.platform.ui.Graphics;
 import mobileapplication3.platform.ui.RootContainer;
@@ -466,10 +467,10 @@ public abstract class GenericMenu extends Container {
                 isStatemapEnabled = true;
                 Logger.log("stateMap loaded");
             } else {
-                Main.showAlert("GenericMenu.loadStatemap:optionTypeMap.length must be == options.length");
+                Platform.showError("GenericMenu.loadStatemap:optionTypeMap.length must be == options.length");
             }
         } else {
-            Main.showAlert("GenericMenu.loadStatemap:null stateMap");
+            Platform.showError("GenericMenu.loadStatemap:null stateMap");
         }
     }
     public void setDefaultColor(int color_hex) {

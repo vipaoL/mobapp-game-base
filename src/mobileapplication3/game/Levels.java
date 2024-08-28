@@ -12,6 +12,7 @@ import at.emini.physics2D.World;
 import at.emini.physics2D.util.PhysicsFileReader;
 import mobileapplication3.platform.FileUtils;
 import mobileapplication3.platform.Logger;
+import mobileapplication3.platform.Platform;
 import mobileapplication3.platform.ui.RootContainer;
 import utils.GameFileUtils;
 
@@ -92,7 +93,7 @@ public class Levels extends GenericMenu implements Runnable {
             try {
                 startLevel(levelPaths[selected]);
             } catch (Exception ex) {
-                Main.showAlert(ex);
+                Platform.showError(ex);
             }
         }
     }
@@ -111,7 +112,7 @@ public class Levels extends GenericMenu implements Runnable {
                 repaint();
                 tick();
 
-                sleep = Main.TICK_DURATION - (System.currentTimeMillis() - start);
+                sleep = GameplayCanvas.TICK_DURATION - (System.currentTimeMillis() - start);
                 sleep = Math.max(sleep, 0);
             } else {
                 sleep = 100;
