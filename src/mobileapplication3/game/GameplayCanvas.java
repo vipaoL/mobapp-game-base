@@ -13,6 +13,7 @@ import at.emini.physics2D.util.PhysicsFileReader;
 import mobileapplication3.platform.Battery;
 import mobileapplication3.platform.Logger;
 import mobileapplication3.platform.Mathh;
+import mobileapplication3.platform.Platform;
 import mobileapplication3.platform.Sound;
 import mobileapplication3.platform.ui.Font;
 import mobileapplication3.platform.ui.Graphics;
@@ -177,7 +178,7 @@ public class GameplayCanvas extends Container implements Runnable {
     
     private void setDefaultWorld() {
         log("gCanv:reading world");
-        PhysicsFileReader reader = new PhysicsFileReader("/emptyworld.phy");
+        PhysicsFileReader reader = new PhysicsFileReader(Platform.getResource("/emptyworld.phy"));
         setLoadingProgress(25);
         
         log("gCanv:loading world");
@@ -833,7 +834,7 @@ public class GameplayCanvas extends Container implements Runnable {
     public boolean keyPressed(int keyCode, int count) {
         int gameAction = RootContainer.getGameActionn(keyCode);
         // pause
-        if (keyCode == Keys.SOFT_RIGHT/* | keyCode == GenericMenu.SIEMENS_KEYCODE_RIGHT_SOFT*/) {
+        if (keyCode == Keys.KEY_SOFT_RIGHT/* | keyCode == GenericMenu.SIEMENS_KEYCODE_RIGHT_SOFT*/) {
             pauseButtonPressed();
         } else // menu
         if (keyCode == Keys.KEY_POUND | gameAction == Keys.GAME_D) {

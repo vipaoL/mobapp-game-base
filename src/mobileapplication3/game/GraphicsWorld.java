@@ -235,7 +235,7 @@ public class GraphicsWorld extends World {
             int y2 = scHeight;
             int ii = 0;
             int n = l/bgLineStep;
-            // horizontal lines
+            // vertical lines
             for (int i = 0; i < n; i++) {
                 int x2 = -(ii + (offset) % bgLineStep - l/2)/*  *64/8  */;
                 ii += bgLineStep;
@@ -246,9 +246,12 @@ public class GraphicsWorld extends World {
                 }
                 drawLine(g, x1 + halfScWidth, y1, x2 + halfScWidth, y2, thickness, false);
             }
-            // vertical lines
+            // horizontal lines
             n = scHeight*2/bgLineStep;
             for (int i = 0; i < n; i++) {
+                if (i == 1) {
+                    continue;
+                }
             	int y = y1 + (y2 - y1) * i * i / n / n;
             	drawLine(g, 0, y, scWidth, y, 1, false);
             }
@@ -584,6 +587,7 @@ public class GraphicsWorld extends World {
         scHeight = h;
         halfScHeight = scHeight / 2;
         scMinSide = Math.min(scWidth, scHeight);
+        bgLineStep = scMinSide / 3;
         zoomBase = 6000 * 240 / scMinSide;
         calcZoomOut();
         bgLineThickness = Math.max(w, h)/250;

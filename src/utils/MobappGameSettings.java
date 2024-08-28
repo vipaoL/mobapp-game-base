@@ -5,7 +5,7 @@ import mobileapplication3.platform.Settings;
 
 public class MobappGameSettings {
     private static final String
-    		RECORD_STORE_SETTINGS = "settings",
+    		RECORD_STORE_SETTINGS = "gameSettings",
 		    IS_SETUP_WIZARD_COMPLETED = "wizardCompleted",
 			MGSTRUCTS_FOLDER_PATH = "mgPath",
 		    IS_BETTER_GRAPHICS_ENABLED = "btrGr",

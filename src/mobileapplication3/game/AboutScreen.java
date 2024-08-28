@@ -26,7 +26,7 @@ public class AboutScreen extends GenericMenu implements Runnable {
     private static final String[] STRINGS = {"J2ME game on emini", "physics engine"};
     private static final String[] MENU_OPTS = {""/*there is qr code*/,
         URL_PREVIEW,
-        "Version: " + Platform.getAppProperty("MIDlet-Version"),
+        "Version: " + Platform.getAppVersion(),
         "Back"};
     private int counter = 17;
     private int scW, scH;
