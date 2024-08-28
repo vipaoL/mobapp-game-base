@@ -459,39 +459,7 @@ public class GraphicsWorld extends World {
         if (DebugMenu.discoMode) {
             g.setColor(random.nextInt(16777216));
         }
-        if (thickness > 1 && betterGraphics) {
-            int t2 = thickness/2;
-            int dx = x2 - x1;
-            int dy = y2 - y1;
-            int l = (int) Math.sqrt(dx*dx+dy*dy);
-            
-            if (l == 0) {
-                g.drawLine(x1, y1, x2, y2);
-                return;
-            }
-            
-            // normal vector
-            int nx = dy*t2 * 1000 / (zoomThickness ? zoomOut : 1000) / l;
-            int ny = dx*t2 * 1000 / (zoomThickness ? zoomOut : 1000) / l;
-            
-            if (nx == 0 && ny == 0) {
-                g.drawLine(x1, y1, x2, y2);
-                return;
-            }
-            
-            // draw bold line with two triangles (splitting by diagonal)
-            g.fillTriangle(x1-nx, y1+ny, x2-nx, y2+ny, x1+nx, y1-ny);
-            g.fillTriangle(x2-nx, y2+ny, x2+nx, y2-ny, x1+nx, y1-ny);
-            int r = t2;
-            if (zoomThickness) {
-            	r = r * 1000 / zoomOut;
-            }
-            int d = r * 2;
-            g.fillArc(x1-r, y1-r, d, d, 0, 360);
-            g.fillArc(x2-r, y2-r, d, d, 0, 360);
-        } else {
-            g.drawLine(x1, y1, x2, y2);
-        }
+        g.drawLine(x1, y1, x2, y2, thickness, zoomOut, betterGraphics);
     }
     
     private void drawGroundLine(Graphics g, int x1, int y1, int x2, int y2, int thickness) {
@@ -508,37 +476,8 @@ public class GraphicsWorld extends World {
         g.fillRect(x1, y3, x2 - x1, scHeight - y3);
         
         g.setColor(0x00ff00);
-        
-        if (thickness > 1 && betterGraphics) {
-            int t2 = thickness/2;
-            int dx = x2 - x1;
-            int dy = y2 - y1;
-            int l = (int) Math.sqrt(dx*dx+dy*dy);
-            
-            if (l == 0) {
-                g.drawLine(x1, y1, x2, y2);
-                return;
-            }
-            
-            // normal vector
-            int nx = dy*t2 * 1000 / zoomOut / l;
-            int ny = dx*t2 * 1000 / zoomOut / l;
-            
-            if (nx == 0 && ny == 0) {
-                g.drawLine(x1, y1, x2, y2);
-                return;
-            }
-            
-            // draw bold line with two triangles (splitting by diagonal)
-            g.fillTriangle(x1-nx, y1+ny, x2-nx, y2+ny, x1+nx, y1-ny);
-            g.fillTriangle(x2-nx, y2+ny, x2+nx, y2-ny, x1+nx, y1-ny);
-            int r = t2 * 1000 / zoomOut;
-            int d = r * 2;
-            g.fillArc(x1-r, y1-r, d, d, 0, 360);
-            g.fillArc(x2-r, y2-r, d, d, 0, 360);
-        } else {
-            g.drawLine(x1, y1, x2, y2);
-        }
+
+        g.drawLine(x1, y1, x2, y2, thickness, zoomOut, betterGraphics);
     }
     
     private void drawArc(Graphics g, int x, int y, int w, int h, int startAngle, int arcAngle, int thickness, int fillColor) {

@@ -108,6 +108,7 @@ public class GameplayCanvas extends Container implements Runnable {
     public GameplayCanvas() {
         loadingProgress = 5;
         log("gcanvas constructor");
+        repaintOnlyOnFlushGraphics = true;
     }
     
     public GameplayCanvas(GraphicsWorld w) {
@@ -238,7 +239,7 @@ public class GameplayCanvas extends Container implements Runnable {
                 		fps = framesFromLastFPSMeasure * 1000 / dtFromLastFPSMeasure;
                 		framesFromLastFPSMeasure = 0;
                 	}
-                	
+
                 	prevTickTime = tickTime;
                 	tickTime = (int) (System.currentTimeMillis() - start);
                     if (unlimitFPS) {
@@ -368,11 +369,8 @@ public class GameplayCanvas extends Container implements Runnable {
                                 try {
                                     bodyUserData = (MUserData) body.getUserData();
                                     bodyType = bodyUserData.bodyType;
-                                } catch (ClassCastException ex) {
-
-                                } catch (NullPointerException ex) {
-
-                                }
+                                } catch (ClassCastException ignored) { }
+                                catch (NullPointerException ignored) { }
                                 switch (bodyType) {
                                     // add fall countdown timer on falling platform
                                     case MUserData.TYPE_FALLING_PLATFORM:
@@ -458,11 +456,7 @@ public class GameplayCanvas extends Container implements Runnable {
                             if (gameoverCountdown < GAME_OVER_COUNTDOWN_STEPS) {
                                 gameoverCountdown++;
                             } else {
-                                if (uninterestingDebug) {
-                                    reset();
-                                } else {
-                                    openMenu();
-                                }
+                                openMenu();
                             }
                         } else {
                             if (gameoverCountdown > 0) {
@@ -482,6 +476,7 @@ public class GameplayCanvas extends Container implements Runnable {
 
                     while (shouldWait) {
                         isWaiting = true;
+                        Thread.yield();
                         try {
                             Thread.sleep(1);
                         } catch (InterruptedException ex) {
@@ -503,11 +498,13 @@ public class GameplayCanvas extends Container implements Runnable {
                     } else {
                         sleep = 0;
                     }
+                    if (isVisible) {
+                        repaint();
+                    }
                 }
                 // fps/tps control
                 try {
                     if (sleep > 0 && (!unlimitFPS || paused)) {
-                    	repaint();  /////////////////////////////////////////////////////////////////////////////////////////////////
                         Thread.sleep(sleep);
                     } else if (System.currentTimeMillis() == start) {
                     	Thread thread = Thread.currentThread();
@@ -540,10 +537,9 @@ public class GameplayCanvas extends Container implements Runnable {
 
     public void repaint() {
     	try {
-	        Graphics g = getUGraphics();
-	        paint(g);
+	        paint(getUGraphics());
 	        flushGraphics();
-    	} catch (NullPointerException ex) { }
+        } catch (Exception ex) { }
     }
     
     // point counter, very beautiful pause menu,
@@ -831,7 +827,7 @@ public class GameplayCanvas extends Container implements Runnable {
         if (timeFlying > 0) {
             timeFlying = Math.max(5, timeFlying);
         }
-        return false;
+        return true;
     }
     
     public boolean keyPressed(int keyCode, int count) {
@@ -858,11 +854,11 @@ public class GameplayCanvas extends Container implements Runnable {
             // if not one of action buttons, turn on motor
             accel = true;
         }
-        return false;
+        return true;
     }
     
     public boolean keyRepeated(int keyCode, int pressedCount) {
-    	return false;
+    	return true;
     }
 
     // touch events
@@ -877,7 +873,7 @@ public class GameplayCanvas extends Container implements Runnable {
         }
         pointerX = x;
         pointerY = y;
-        return false;
+        return true;
     }
     public boolean pointerDragged(int x, int y) {
         if (pauseTouched | menuTouched) {
@@ -890,7 +886,7 @@ public class GameplayCanvas extends Container implements Runnable {
         }
         pointerX = x;
         pointerY = y;
-        return false;
+        return true;
     }
     public boolean pointerReleased(int x, int y) {
         if (pauseTouched) {
@@ -903,7 +899,7 @@ public class GameplayCanvas extends Container implements Runnable {
         menuTouched = false;
         // turn off the motor
         accel = false;
-        return false;
+        return true;
     }
     
     class FlipCounter {

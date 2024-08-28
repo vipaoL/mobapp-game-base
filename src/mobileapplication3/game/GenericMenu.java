@@ -251,7 +251,7 @@ public abstract class GenericMenu extends Container {
                 }
             } while (needRepeat);
         }
-        return isSelectPressed && !isSelectAlreadyPressed;
+        return isSelectPressed;// && !isSelectAlreadyPressed;
     }
     
     public boolean keyRepeated(int keyCode, int pressedCount) {
@@ -261,6 +261,7 @@ public abstract class GenericMenu extends Container {
     public boolean keyPressed(int keyCode, int count) {
         if(handleKeyPressed(keyCode)) {
             selectPressed();
+            isSelectPressed = false;
         }
         return true;
     }

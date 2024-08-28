@@ -149,6 +149,7 @@ public class WorldGen implements Runnable {
         if (tick >= 10) {
             tick = 0;
         }
+        Thread.yield();
         try {
             if (!needSpeed) {
                 Thread.sleep(20);

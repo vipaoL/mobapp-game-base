@@ -87,12 +87,14 @@ public class MenuCanvas extends GenericMenu implements Runnable {
     }
 
     public void paint(Graphics g) {
-        g.setColor(0);
-        g.fillRect(0, 0, w, h);
-        if (isInited) {
-            super.paint(g);
-            tick();
-        }
+        try {
+            g.setColor(0);
+            g.fillRect(0, 0, w, h);
+            if (isInited) {
+                super.paint(g);
+                tick();
+            }
+        } catch (Exception ex) { }
     }
 
     public void startGame() {
