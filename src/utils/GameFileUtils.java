@@ -27,7 +27,7 @@ public class GameFileUtils {
 				for (int j = 0; j < listTmp[i].length; j++) {
 					listTmp[i][j] = places[i] + listTmp[i][j];
 				}
-			} catch (IOException e) {
+			} catch (Exception e) {
 				e.printStackTrace();
 				listTmp[i] = new String[0];
 			}

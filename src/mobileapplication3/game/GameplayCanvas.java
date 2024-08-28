@@ -193,7 +193,9 @@ public class GameplayCanvas extends Container implements Runnable {
         log("gCanv:closing reader");
         try {
             reader.close();
-        } catch (Exception ex) { }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
 
     // game thread with main cycle and preparing
