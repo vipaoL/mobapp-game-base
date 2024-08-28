@@ -408,18 +408,25 @@ public class GameplayCanvas extends Container implements Runnable {
 	                    }
                     }
 
-                    if (DebugMenu.simulationMode) {
-                        world.rightwheel.setDynamic(false);
-                        world.carbody.setDynamic(false);
-                        world.leftwheel.setDynamic(false);
+                    if (bigTick) {
+                        if (DebugMenu.simulationMode) {
+                            world.rightwheel.setDynamic(false);
+                            world.carbody.setDynamic(false);
+                            world.leftwheel.setDynamic(false);
 
-                        world.carbody.translate(new FXVector(FXUtil.ONE_FX*100, 0), 0);
-                        world.leftwheel.translate(new FXVector(FXUtil.ONE_FX*100, 0), 0);
-                        world.rightwheel.translate(new FXVector(FXUtil.ONE_FX*100, 0), 0);
+                            world.carbody.translate(new FXVector(FXUtil.ONE_FX*100, 0), 0);
+                            world.leftwheel.translate(new FXVector(FXUtil.ONE_FX*100, 0), 0);
+                            world.rightwheel.translate(new FXVector(FXUtil.ONE_FX*100, 0), 0);
+                        }
+
+                        if (isWorldLoaded) {
+                            hintVisibleTimer--;
+                        }
+
+                        if (pauseDelay > 0) {
+                            pauseDelay--;
+                        }
                     }
-
-                    if (pauseDelay > 0 && bigTick)
-                        pauseDelay--; ////////////////
 
                     if (WorldGen.isEnabled) {
                         flipCounter.tick();
@@ -558,9 +565,6 @@ public class GameplayCanvas extends Container implements Runnable {
             }
             for (int i = 0; i < PAUSE_HINT.length; i++) {
                 g.drawString(PAUSE_HINT[i], scW*5/6, i * sFontH + scH / 12 - sFontH*PAUSE_HINT.length/2, Graphics.HCENTER | Graphics.TOP);
-            }
-            if (isWorldLoaded) {
-                hintVisibleTimer--;
             }
         }
         
@@ -833,7 +837,7 @@ public class GameplayCanvas extends Container implements Runnable {
     public boolean keyPressed(int keyCode, int count) {
         int gameAction = RootContainer.getGameActionn(keyCode);
         // pause
-        if (keyCode == Keys.SOFT_RIGHT/* | keyCode == GenericMenu.SIEMENS_KEYCODE_RIGHT_SOFT*/) {
+        if (keyCode == Keys.KEY_SOFT_RIGHT/* | keyCode == GenericMenu.SIEMENS_KEYCODE_RIGHT_SOFT*/) {
             pauseButtonPressed();
         } else // menu
         if (keyCode == Keys.KEY_POUND | gameAction == Keys.GAME_D) {
