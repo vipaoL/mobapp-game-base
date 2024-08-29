@@ -23,9 +23,12 @@ import mobileapplication3.platform.ui.RootContainer;
 public class AboutScreen extends GenericMenu implements Runnable {
     private static final String URL = "https://github.com/vipaoL/mobap-game";
     private static final String URL_PREVIEW = "GitHub: vipaoL/mobap-game";
-    private static final String[] STRINGS = {"J2ME game on emini", "physics engine"};
+    private static final String URL2 = "https://t.me/mobapp_game";
+    private static final String URL2_PREVIEW = "TG: @mobapp_game";
+    private static final String[] STRINGS = {"A cross-platform game", "on emini physics engine"};
     private static final String[] MENU_OPTS = {""/*there is qr code*/,
         URL_PREVIEW,
+        URL2_PREVIEW,
         "Version: " + Platform.getAppVersion(),
         "Back"};
     private int counter = 17;
@@ -57,7 +60,7 @@ public class AboutScreen extends GenericMenu implements Runnable {
         }
         scW = w;
         scH = h;
-        qrSide = scH/* - font2H*/ - fontH * (STRINGS.length + MENU_OPTS.length + 1);
+        qrSide = scH/* - font2H*/ - fontH * (STRINGS.length + MENU_OPTS.length + 6);
         margin = fontH/2;
         if (qrSide > scW - margin*2) {
             qrSide = scW - margin*2;
@@ -65,13 +68,13 @@ public class AboutScreen extends GenericMenu implements Runnable {
         
         int headerAndQrH = fontH * (STRINGS.length) + 3*margin + qrSide;
         int buttonsFontH = findOptimalFont(scW, scH - headerAndQrH - margin, MENU_OPTS);
-        extraVerticalMargin = (scH - (headerAndQrH + (3*MENU_OPTS.length/2)*buttonsFontH + margin)) / 4;
+        extraVerticalMargin = (scH - (headerAndQrH + (3*MENU_OPTS.length/2)*buttonsFontH + margin)) / 8;
         if (extraVerticalMargin < 0) {
             extraVerticalMargin = 0;
         }
         
         int menuBtnsOffsetH = drawHeaderAndQR(null);
-        int menuH = scH - menuBtnsOffsetH - margin - extraVerticalMargin;
+        int menuH = scH - menuBtnsOffsetH - margin;
         loadCanvasParams(
         		0, h - menuH,
                 scW, menuH);
@@ -190,7 +193,7 @@ public class AboutScreen extends GenericMenu implements Runnable {
             }
         }
         offset += qrSide;
-        offset += margin + extraVerticalMargin;
+        offset += margin;// + extraVerticalMargin;
         //g.drawLine(0, offset, scW, offset);
         return offset;
     }
@@ -203,17 +206,20 @@ public class AboutScreen extends GenericMenu implements Runnable {
         }
     }
 
-    void openLink() {
-        Logger.log(URL);
-        if (Platform.platformRequest(URL)) {
+    void openLink(String url) {
+        Logger.log(url);
+        if (Platform.platformRequest(url)) {
             Platform.exit();
         }
     }
 
     void selectPressed() {
         int selected = this.selected;
+        if (selected == MENU_OPTS.length - 4) {
+            openLink(URL);
+        }
         if (selected == MENU_OPTS.length - 3) {
-            openLink();
+            openLink(URL2);
         }
         if (selected == MENU_OPTS.length - 2) {
             counter+=1;
