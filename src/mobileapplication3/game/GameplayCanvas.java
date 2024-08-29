@@ -6,6 +6,7 @@ package mobileapplication3.game;
 
 import at.emini.physics2D.Body;
 import at.emini.physics2D.Contact;
+import at.emini.physics2D.UserData;
 import at.emini.physics2D.World;
 import at.emini.physics2D.util.FXUtil;
 import at.emini.physics2D.util.FXVector;
@@ -214,7 +215,7 @@ public class GameplayCanvas extends Container implements Runnable {
             Contact[][] contacts = new Contact[3][];
 
             // init music player if enabled
-            if (DebugMenu.isDebugEnabled & DebugMenu.music) {
+            if (DebugMenu.isDebugEnabled && DebugMenu.music) {
                 log("Starting sound");
                 Sound sound = new Sound();
                 sound.start();
@@ -268,7 +269,7 @@ public class GameplayCanvas extends Container implements Runnable {
                     rightWheelContacts = contacts[1][0] != null;
                     
                     if (bigTick) {
-	                    if ((!leftWheelContacts & !rightWheelContacts)) {
+	                    if ((!leftWheelContacts && !rightWheelContacts)) {
 	                        timeFlying += 1;
 	                    } else {
 	                        timeFlying = 0;
@@ -332,7 +333,8 @@ public class GameplayCanvas extends Container implements Runnable {
                             int motorForceX = FXUtil.divideFX(FXUtil.toFX(Mathh.cos(carAngle - 15 + directionOffset) * speedMultipiler), TEN_FX * 5);
                             int motorForceY = FXUtil.divideFX(FXUtil.toFX(Mathh.sin(carAngle - 15 + directionOffset) * speedMultipiler), TEN_FX * 5);
                             world.carbody.applyMomentum(new FXVector(motorForceX, -motorForceY));
-                            if ((!leftWheelContacts && world.getContactsForBody(world.carbody)[0] != null) || rightWheelContacts) {
+                            boolean carBodyContacts = world.getContactsForBody(world.carbody)[0] != null;
+                            if ((!leftWheelContacts && carBodyContacts) || rightWheelContacts) {
                                 int force = -6000;
                                 if (rightWheelContacts) {
                                     force *= 2;
@@ -342,7 +344,7 @@ public class GameplayCanvas extends Container implements Runnable {
                         }
                     } else {
                         // brake for two seconds after motor turning off
-                        if (timeMotorTurnedOff < 40 & !uninterestingDebug) {
+                        if (timeMotorTurnedOff < 40 && !uninterestingDebug) {
                             try {
                                 if (world.carbody.angularVelocity2FX() > 0) {
                                     world.carbody.applyTorque(FXUtil.toFX(world.carbody.angularVelocity2FX() * GAME_SPEED_MULTIPLIER / 4000));
@@ -358,23 +360,23 @@ public class GameplayCanvas extends Container implements Runnable {
                     }
 
                     // if touched an interactive object (falling platform, effect plate)
-                    for (int j = 0; j < 3; j++) {
+                    for (int j = 0; j < contacts.length; j++) {
                         for (int i = 0; i < contacts[j].length; i++) {
                             if (contacts[j][i] != null) {
                                 Body body = contacts[j][i].body1();
-                                // default value, will be overwritten if other is available
-                                int bodyType = MUserData.TYPE_FALLING_PLATFORM;
-
-                                MUserData bodyUserData = null;
-                                try {
-                                    bodyUserData = (MUserData) body.getUserData();
-                                    bodyType = bodyUserData.bodyType;
-                                } catch (ClassCastException ignored) { }
-                                catch (NullPointerException ignored) { }
+                                if (body == null) {
+                                    continue;
+                                }
+                                UserData userData = body.getUserData();
+                                if (!(userData instanceof MUserData)) {
+                                    continue;
+                                }
+                                MUserData bodyUserData = (MUserData) body.getUserData();
+                                int bodyType = bodyUserData.bodyType;
                                 switch (bodyType) {
                                     // add fall countdown timer on falling platform
                                     case MUserData.TYPE_FALLING_PLATFORM:
-                                        if (!world.waitingForDynamic.contains(body) & body != world.carbody & body != world.leftwheel & body != world.rightwheel) {
+                                        if (!world.waitingForDynamic.contains(body)) {
                                             world.waitingForDynamic.addElement(body);
                                             world.waitingTime.addElement(new Integer(600));
                                             if (uninterestingDebug) world.removeBody(body);
@@ -385,9 +387,6 @@ public class GameplayCanvas extends Container implements Runnable {
                                         giveEffect(bodyUserData.data);
                                         world.setWheelColor(bodyUserData.color);
                                         break;
-                                    default:
-                                        log("unknown bodyType:" + bodyType);
-                                        break;
                                 }
                             }
                         }
@@ -397,16 +396,14 @@ public class GameplayCanvas extends Container implements Runnable {
 	                    for (int i = 0; i < currentEffects.length; i++) {
 	                        if (currentEffects[i] != null) {
 	                            if (currentEffects[i][0] > 0) {
-	                                currentEffects[i][0]--; ///////////////////////////
+	                                currentEffects[i][0]--;
 	                                log("effect" + i + "," + currentEffects[i][0] + " ticks left");
 	                            } else if (currentEffects[i][0] == 0) {
 	                                currentEffects[i] = null;
 	                            }
 	                        }
 	                    }
-                    }
 
-                    if (bigTick) {
                         if (DebugMenu.simulationMode) {
                             world.rightwheel.setDynamic(false);
                             world.carbody.setDynamic(false);
@@ -424,10 +421,17 @@ public class GameplayCanvas extends Container implements Runnable {
                         if (pauseDelay > 0) {
                             pauseDelay--;
                         }
-                    }
 
-                    if (WorldGen.isEnabled) {
-                        flipCounter.tick();
+                        if (WorldGen.isEnabled) {
+                            // highlight the score counter on flip
+                            if (flipIndicator < 255) {
+                                flipIndicator+=64;
+                                if (flipIndicator >= 255) {
+                                    flipIndicator = 255;
+                                }
+                            }
+                            flipCounter.tick();
+                        }
                     }
                     
                     if (tick < 3) {
@@ -447,7 +451,7 @@ public class GameplayCanvas extends Container implements Runnable {
                         // lies upside down or fell out of the world
                         int lowestY = 5000;
                         if (worldgen != null) {
-                            lowestY = worldgen.getLowestY();
+                            lowestY = WorldGen.getLowestY();
                         }
                         if (GraphicsWorld.carY > 2000 + lowestY || (carAngle > 140 && carAngle < 220 && world.carbody.getContacts()[0] != null)) {
                             if (uninterestingDebug) {
@@ -627,7 +631,7 @@ public class GameplayCanvas extends Container implements Runnable {
                 }
             }
             if (oneFrameTwoTicks) {
-                g.drawString("FPS:" + fps/2, 0, hudLeftTextOffset, 0);
+                g.drawString("FPS:" + fps/2 + " TPS:" + fps, 0, hudLeftTextOffset, 0);
             } else {
                 g.drawString("FPS:" + fps, 0, hudLeftTextOffset, 0);
             }
@@ -687,14 +691,6 @@ public class GameplayCanvas extends Container implements Runnable {
             setFont(largefont, g);
             g.drawString(String.valueOf(points), scW/2, scH - currentFontH * 3 / 2,
                     Graphics.HCENTER | Graphics.TOP);
-            
-            // coloring when flip
-            if (flipIndicator < 255 & !DebugMenu.dontCountFlips) {
-                flipIndicator+=64;
-                if (flipIndicator >= 255) {
-                    flipIndicator = 255;
-                }
-            }
         }
         
         // draw beautiful(isn't it?) pause screen
@@ -838,11 +834,11 @@ public class GameplayCanvas extends Container implements Runnable {
         } else // menu
         if (keyCode == Keys.KEY_POUND | gameAction == Keys.GAME_D) {
             openMenu();
-        } else  // pause too. i'll rework it later
+        } else  // also pause. i'll rework it later
         if ((keyCode == Keys.KEY_STAR | gameAction == Keys.GAME_B)) {
             pauseButtonPressed();
             // no cheats. only pause
-            /*if (DebugMenu.isDebugEnabled & DebugMenu.cheat) {
+            /*if (DebugMenu.isDebugEnabled && DebugMenu.cheat) {
                 FXVector pos = w.carbody.positionFX();
                 int carX = pos.xAsInt();
                 int carY = pos.yAsInt();
@@ -851,21 +847,19 @@ public class GameplayCanvas extends Container implements Runnable {
         } else
         if (keyCode == Keys.KEY_NUM6) {
         } else {
-            // if not one of action buttons, turn on motor
+            // if not an action button, turn on the motor
             accel = true;
         }
         return true;
     }
     
-    public boolean keyRepeated(int keyCode, int pressedCount) {
-    	return true;
-    }
+    public boolean keyRepeated(int keyCode, int pressedCount) { return true; }
 
     // touch events
     public boolean pointerPressed(int x, int y) {
-        if (x > scW * 2 / 3 & y < scH / 6) {
+        if (x > scW * 2 / 3 && y < scH / 6) {
             pauseTouched = true;
-        } else if (x < scW / 3 & y < scH / 6) {
+        } else if (x < scW / 3 && y < scH / 6) {
             menuTouched = true;
         } else {
             // if not on buttons, turn on the motor
@@ -903,78 +897,42 @@ public class GameplayCanvas extends Container implements Runnable {
     }
     
     class FlipCounter {
-        boolean flipWaiting = false;
-        boolean backFlipWaiting = false;
-        boolean step1Done = false;
-        boolean step2Done = false;
-
-        int backFlipsCount = 0;
-        int upperAng = 0;
+        int step = 0;
+        boolean flipDirection = false;
+        boolean prevFlipDirection = false;
 
         void tick() {
             if (DebugMenu.dontCountFlips) {
                 return;
             }
-            if (world.carbody.rotationVelocity2FX() >= 0) {
-                if (flipWaiting) {
-                    flipWaiting = false;
-                    step1Done = false;
-                    step2Done = false;
-                }
-                backFlipWaiting = true;
-            } else {
-                if (backFlipWaiting) {
-                    backFlipsCount = 0;
-                    backFlipWaiting = false;
-                    step1Done = false;
-                    step2Done = false;
-                }
-                flipWaiting = true;
+            flipDirection = world.carbody.rotationVelocity2FX() >= 0;
+            if (flipDirection != prevFlipDirection || GameplayCanvas.timeFlying < 1 && !GameplayCanvas.uninterestingDebug) {
+                step = 0;
             }
-            int ang = world.carbody.rotation2FX();
-            if (!step1Done) {
-                if (ang < 13176794 | ang > 92237561) {
-                    step1Done = true;
-                }
-            } else {
-                // cancel when touched the ground
-                if (GameplayCanvas.timeFlying < 1 & !GameplayCanvas.uninterestingDebug) {
-                    step2Done = false;
-                    backFlipsCount = 0;
-                    return;
-                }
-                if (!step2Done) {
-                    if (!(ang < 13176794 | ang > 92237561))
-                        step2Done = true;
-                } else {
-                    if ((ang < 13176794 | ang > 92237561)) {
-                        if (world.carbody.rotationVelocity2FX() >= 0) {
-                            if (backFlipWaiting) {
-                                backFlipsCount++;
-                                if (backFlipsCount > 1) {
-                                    points += 1;
-                                    backFlipsCount = 0;
-                                    indicateFlip();
-                                }
-                            }
-                        } else {
-                            if (flipWaiting) {
-                                points += 1;
-                                indicateFlip();
-                            }
-                            backFlipsCount = 0;
-                            //FXUtil.
+            prevFlipDirection = flipDirection;
+
+            int ang = carAngle;
+            boolean isInNormalPos = ang < 45 || ang > 315;
+            if (isInNormalPos && step % 2 == 0) {
+                step++;
+                if (step > 1) {
+                    if (flipDirection) {
+                        if ((step - 1) % 4 == 0) {
+                            onFlipDone();
                         }
-                        step1Done = false;
-                        step2Done = false;
+                    } else {
+                        onFlipDone();
                     }
                 }
+            } else if (!isInNormalPos && step % 2 != 0) {
+                step++;
             }
         }
 
-        // blink point counter on flip
-        public void indicateFlip() {
+        // blink point counter on flip and increment the score
+        public void onFlipDone() {
             flipIndicator = 0;
+            points++;
         }
     }
 }

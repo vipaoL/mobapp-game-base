@@ -24,7 +24,14 @@ import utils.MgStruct;
  * @author vipaol
  */
 public class WorldGen implements Runnable {
-    
+
+    public static final int LINE = 2;
+    public static final int CIRCLE = 3;
+    public static final int BROKEN_LINE = 4;
+    public static final int BROKEN_CIRCLE = 5;
+    public static final int SIN = 6;
+    public static final int ACCELERATOR = 7;
+
     public static boolean isEnabled = false;
     
     int stdStructsNumber = 6;
@@ -36,7 +43,7 @@ public class WorldGen implements Runnable {
     
     private int lastX;
     private int lastY;
-    private int lowestY;
+    private static int lowestY;
     
     public static int barrierX = Short.MIN_VALUE;
     public static int bgZeroPoint = 0;
@@ -73,6 +80,7 @@ public class WorldGen implements Runnable {
     
     public WorldGen(GraphicsWorld w) {
         lock = 0;
+        lowestY = 2000;
         Logger.log("wg:starting");
         lockGameThread("init");
         this.w = w;
@@ -83,7 +91,7 @@ public class WorldGen implements Runnable {
         mgStruct = new MgStruct();
         reset();
         unlockGameThread("init");
-        (new Thread(this, "world generator")).start();
+        (new Thread(this, "wg")).start();
     }
     
     public void run() {
@@ -111,7 +119,7 @@ public class WorldGen implements Runnable {
                         lockGameThread("addSt");
                     }
                     gameTrLockedByAdding = true;
-                    Logger.log("wg can't keep up, waiting;");
+                    Logger.log("wg can't keep up, locking game thread;");
                 }
                 currStep = STEP_ADD;
                 placeNext();
@@ -127,9 +135,10 @@ public class WorldGen implements Runnable {
             
             if (tick == 0) {
                 currStep = STEP_RES_POS;
-                // World cycling
-                //(the physics engine is working weird when the coordinate reaches around 10000
-                //  then we need to move all structures and bodies to the left when the car is to the right of 3000)
+                /* World cycling
+                * The larger the coordinates, the weirder the physics engine behaves.
+                * So we need to move all structures and bodies to the left from time to time.
+                */
                 if (GraphicsWorld.carX > 3000 && (GameplayCanvas.timeFlying > -1 || GameplayCanvas.uninterestingDebug)) {
                     resetPosition();
                 }
@@ -162,9 +171,9 @@ public class WorldGen implements Runnable {
     private void placeNext() {
         int idsCount;
         if (DebugMenu.mgstructOnly) {
-            idsCount = mgStruct.loadedStructsNumber;
+            idsCount = MgStruct.loadedStructsNumber;
         } else {
-            idsCount = stdStructsNumber + floorWeightInRandom + mgStruct.loadedStructsNumber;
+            idsCount = stdStructsNumber + floorWeightInRandom + MgStruct.loadedStructsNumber;
         }
         while (nextStructRandomId == prevStructRandomId
                 || (DebugMenu.whatTheGame && (nextStructRandomId < 6 || nextStructRandomId > 9))) {
@@ -177,10 +186,10 @@ public class WorldGen implements Runnable {
         }
         
         if (lastY > 1000 | lastY < -1000) { // will correct height if it is too high or too low
-            Logger.log("correcting height because lastY=", lastY);
+            Logger.log("correcting height. lastY=", lastY);
             floor(lastX, lastY, 1000 + rand.nextInt(4) * 100, (rand.nextInt(7) - 3) * 100);
         } else {
-            Logger.log("placing: id=", nextStructRandomId);
+            Logger.log("+id", nextStructRandomId);
             /*
             * 0 - circ1, 1 - sin, 2 - floorStat, 3 - circ2, 4 - abyss,
             * 5 - dotline, 6..9 - floor, 10 - mgstruct0, 11 - mgstruct1,
@@ -188,7 +197,7 @@ public class WorldGen implements Runnable {
             */
             switch(nextStructRandomId) {
                 case 0:
-                    circ1(lastX, lastY, 400, 15, 120);
+                    circ1(lastX, lastY, 200 + Math.abs(rand.nextInt()) % 400, 15, 120);
                     break;
                 case 1:
                     int l = 720 + rand.nextInt(8) * 180;
@@ -199,7 +208,7 @@ public class WorldGen implements Runnable {
                     floorStat(lastX, lastY, 400 + rand.nextInt(10) * 100);
                     break;
                 case 3:
-                    circ2(lastX, lastY, 1000, 20);
+                    circ2(lastX, lastY, 500 + Math.abs(rand.nextInt()) % 500, 20);
                     break;
                 case 4:
                     abyss(lastX, lastY, rand.nextInt(6) * 1000);
@@ -219,6 +228,7 @@ public class WorldGen implements Runnable {
         }
         Logger.log("lastX=", lastX);
         lowestY = Math.max(lastY, lowestY);
+        Logger.log("lowestY=", lowestY);
     }
     
     public void pause() {
@@ -261,7 +271,6 @@ public class WorldGen implements Runnable {
         }
         rmAllBodies();
         rmSegs();
-        constraints = null;
         unlockGameThread("clnW");
     }
     private void rmSegs() {
@@ -304,16 +313,14 @@ public class WorldGen implements Runnable {
             if (bodies[i] != w.carbody & bodies[i] != w.leftwheel & bodies[i] != w.rightwheel)
             w.removeBody(bodies[i]);
         }
-        bodies = null;
     }*/
     private void rmAllBodies() {
         Body[] bodies = w.getBodies();
         while (w.getBodyCount() > 0) {
             w.removeBody(bodies[0]);
         }
-        bodies = null;
     }
-    public int getLowestY() {
+    public static int getLowestY() {
         return lowestY;
     }
     public int getSegmentCount() {
@@ -381,18 +388,18 @@ public class WorldGen implements Runnable {
         }
         
         public void add(int endX, int segsNumber) {
-            //Main.log("strL:add "+endX+" "+segsNumber);
+            //Logger.log("strL:add "+endX+" "+segsNumber);
             linesInStructure = 0;
             
             if (numberOfLoggedStructs >= structLog.length) {
                 int ns = structLog.length+1;
-                Logger.log("strcLog is too small. to " + ns);
+                Logger.log("structLog len => " + ns);
                 increase(ns);
             }
             
             short[] a = {(short) endX, (short) segsNumber};
             int nextID = (ringLogStart + numberOfLoggedStructs) % structLog.length;
-            Logger.log("logging struct, to " + nextID);
+            Logger.log("logging struct to " + nextID);
             structLog[nextID] = a;
             
             numberOfLoggedStructs++;
@@ -449,7 +456,7 @@ public class WorldGen implements Runnable {
                 // add a barrier to the left world border
                 if (!isLeftBarrierAdded) {
                     barrierX = structLog[getElementID(0)][0];
-                    Logger.log("adding a barrier at " + barrierX);
+                    Logger.log("+barrier at " + barrierX);
                     lndscp.addSegment(FXVector.newVector(barrierX, -10000), FXVector.newVector(barrierX, 10000), (short) 1);
                     structLog[getElementID(1)][1] += 1;
                     isLeftBarrierAdded = true;
@@ -508,10 +515,10 @@ public class WorldGen implements Runnable {
     void placeMGStructByID(int id) {
         short[][] data = mgStruct.structStorage[id];
         if (data.length < 1) {
-            Logger.log("placing mgstruct cancelled, length=", data.length);
+            Logger.log("mgs" + id + " is broken: data.length=", data.length);
             return;
         }
-        Logger.log("placing mgstruct, id=", id);
+        Logger.log("+mgs", id);
         for (int i = 1; i < data.length; i++) {
             placePrimitive(data[i]);
         }
@@ -522,12 +529,11 @@ public class WorldGen implements Runnable {
     
     void placePrimitive(short[] data) {
         short id = data[0];
-        //Main.print("placing element, id=", id);
-        if (id == 2) {
+        if (id == LINE) {
             line(data[1] + lastX, data[2] + lastY, data[3] + lastX, data[4] + lastY);
-        } else if (id == 3) {
+        } else if (id == CIRCLE) {
             arc(data[1]+lastX, data[2]+lastY, data[3], data[4], data[5], data[6] / 10, data[7] / 10);
-        } else if (id == 4 & !isResettingPosition) {
+        } else if (id == BROKEN_LINE && !isResettingPosition) {
             int x1 = data[1];
             int y1 = data[2];
             int x2 = data[3];
@@ -546,7 +552,7 @@ public class WorldGen implements Runnable {
             rect.setFriction(10);
             rect.setElasticity(0);
             dx/=(l/platfL);
-            int spX = spacing * dx / l;
+            int spX = spacing * dx / l; // TODO fix this mess (the editor should be fixed too, it will be a new mgstruct format version)
             dy/=(l/platfL);
             int spY = spacing * dy / l;
             int offsetX = platfL/2 * Mathh.cos(ang) / 1000;
@@ -555,18 +561,16 @@ public class WorldGen implements Runnable {
             for (int i = 0; i < n; i++) {
                 Body fallinPlatf = new Body(lastX + x1 + i*(dx+spX) + offsetX, lastY + y1 + i*(dy+spY) + offsetY, rect, false);
                 fallinPlatf.setRotation2FX(FXUtil.TWO_PI_2FX / 360 * ang);
-                //UserData mUserData = new MUserData(MUserData.TYPE_ACCELERATOR, new short[] {/*GameplayCanvas.EFFECT_SPEED, 10, */105, 100});
-                //fallinPlatf.setUserData(mUserData);
                 fallinPlatf.setUserData(new MUserData(MUserData.TYPE_FALLING_PLATFORM, new short[] {20}));
                 w.addBody(fallinPlatf);
-                //Main.log(((MUserData) fallinPlatf.getUserData()).bodyType);
             }
             
-        } else if (id == 5) {
+        } else if (id == BROKEN_CIRCLE) {
+            // not implemented yet
             arc(data[1]+lastX, data[2]+lastY, data[3], 360, 0);
-        } else if (id == 6) {
+        } else if (id == SIN) {
             sin(lastX + data[1], lastY + data[2], data[3], data[4], data[5], data[6]);
-        } else if (id == 7) {
+        } else if (id == ACCELERATOR) {
             int x = lastX + data[1];
             int y = lastY + data[2];
             int l = data[3];
@@ -584,25 +588,13 @@ public class WorldGen implements Runnable {
             int colorModifier = (speedMultipiler - 100) * 3;
             int red = Math.min(255, Math.max(0, colorModifier));
             int blue = Math.min(255, Math.max(0, -colorModifier));
-            if (red < 50 & blue < 50) {
+            int green = blue;
+            if (red < 50 && blue < 50) {
                 red = 50;
                 blue = 50;
             }
-            
-            String redStr = Integer.toHexString(red);
-            while (redStr.length() < 2) {                
-                redStr = "0" + redStr;
-            }
-            
-            String blueStr = Integer.toHexString(blue);
-            while (blueStr.length() < 2) {                
-                blueStr = "0" + blueStr;
-            }
-            
-            String greenStr = blueStr;
-            
-            String colorStr = redStr + greenStr + blueStr;
-            int color = Integer.parseInt(colorStr, 16);
+
+            int color = ((red & 0xff) << 16) | ((green & 0xff) << 8) | (blue & 0xff);
             
             Shape plate = Shape.createRectangle(l, h);
             Body pressurePlate = new Body(centerX, centerY, plate, false);
@@ -623,7 +615,7 @@ public class WorldGen implements Runnable {
      * STRUCTURES AND PRIMITIVES               *
      * 
      *******************************************/
-    
+
     
     
     
@@ -649,8 +641,8 @@ public class WorldGen implements Runnable {
         int ang = 360 - va;
         
         int offset = va + 90 - f0off;
-        
         arc(x+r, y-r, r, ang, offset);
+
         int r2 = r/10*8;
         line(x, y, x+r-r2, y);
         arc(x+r, y, r2, 90, 90, 10, 5);
@@ -658,7 +650,9 @@ public class WorldGen implements Runnable {
         lastY += r2/2;
         
         if (!isResettingPosition) {
-            int l2 = (r2) / 2;
+            int l2 = (r2) / 2 - r*(1000 - Mathh.cos(f0off)) / 2000;
+
+            l2 += 10; // hack. I don't understand this code anymore. This method should be rewritten entirely
 
             int platfLength = 2*sl*r*3141/1000/360;
             int platfHeight = r/100;
@@ -671,6 +665,7 @@ public class WorldGen implements Runnable {
             for (int i = f0off+sl/2; i < 60; i+=sl) {
                 Body fallinPlatf = new Body(x+r+Mathh.cos(i+f0off)*(r+platfHeight/2)/1000, y-r+Mathh.sin(i+f0off)*(r+platfHeight/2)/1000, rect, true);
                 fallinPlatf.setDynamic(false);
+                fallinPlatf.setUserData(new MUserData(MUserData.TYPE_FALLING_PLATFORM, new short[] {20}));
                 fallinPlatf.setRotationDeg(i+f0off-90);
                 w.addBody(fallinPlatf);
             }
@@ -680,8 +675,8 @@ public class WorldGen implements Runnable {
             rect.setElasticity(0);
             for (int i = 0; i < 2; i++) {
                 Body fallinPlatf = new Body(x+r-r2+i*l2+l2/2, y+platfHeight/2, rect, true);
-                fallinPlatf.setUserData(new MUserData(MUserData.TYPE_FALLING_PLATFORM, new short[] {20}));
                 fallinPlatf.setDynamic(false);
+                fallinPlatf.setUserData(new MUserData(MUserData.TYPE_FALLING_PLATFORM, new short[] {20}));
                 w.addBody(fallinPlatf);
             }
         }
@@ -770,10 +765,10 @@ public class WorldGen implements Runnable {
         while (of < 0) {
             of += 360;
         }
-        
+
         int linesFacing = 0;
         if (ang == 360) {
-            linesFacing = 1;
+            linesFacing = 1; // these lines push bodies only in one direction
         }
         
         int lastAng = 0;
@@ -781,7 +776,8 @@ public class WorldGen implements Runnable {
             line(x+Mathh.cos(i+of)*kx*r/10000, y+Mathh.sin(i+of)*ky*r/10000, x+Mathh.cos(i+sl+of)*kx*r/10000,y+Mathh.sin(i+sl+of)*ky*r/10000, linesFacing);
             lastAng = i + sl;
         }
-        
+
+        // close the circle if the angle is not multiple of the step (sl)
         if (ang % sl != 0) {
             line(x+Mathh.cos(lastAng+of)*kx*r/10000, y+Mathh.sin(lastAng+of)*ky*r/10000, x+Mathh.cos(ang+of)*kx*r/10000,y+Mathh.sin(ang+of)*ky*r/10000, linesFacing);
         }

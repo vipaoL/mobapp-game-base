@@ -13,6 +13,7 @@ import at.emini.physics2D.Joint;
 import at.emini.physics2D.Landscape;
 import at.emini.physics2D.Shape;
 import at.emini.physics2D.Spring;
+import at.emini.physics2D.UserData;
 import at.emini.physics2D.World;
 import at.emini.physics2D.util.FXUtil;
 import at.emini.physics2D.util.FXVector;
@@ -92,6 +93,19 @@ public class GraphicsWorld extends World {
         currColBodies = colBodies;
     }
 
+    public void removeBody(Body body) {
+        if (body != carbody && body != leftwheel && body != rightwheel) {
+            super.removeBody(body);
+        } else {
+            try {
+                throw new IllegalArgumentException("Trying to remove a part of the car. Please report this bug");
+            } catch (IllegalArgumentException ex) {
+                Logger.log(ex.getMessage());
+                ex.printStackTrace();
+            }
+        }
+    }
+
     public void addCar() {
         int x = 0;
         if (WorldGen.isEnabled) {
@@ -157,24 +171,24 @@ public class GraphicsWorld extends World {
         // for falling platforms
         for (int i = 0; i < waitingForDynamic.size(); i++) {
             try {
-                waitingTime.setElementAt(new Integer(((Integer) waitingTime.elementAt(i)).intValue() - diffTime), i);
-                if (Integer.parseInt(String.valueOf(waitingTime.elementAt(i))) <= 0) {
+                Integer timeRemaining = (Integer) waitingTime.elementAt(i);
+                timeRemaining -= diffTime;
+                waitingTime.setElementAt(timeRemaining, i);
+                if (timeRemaining <= 0) {
                     ((Body) waitingForDynamic.elementAt(i)).setDynamic(true);
                     waitingForDynamic.removeElementAt(i);
                     waitingTime.removeElementAt(i);
                 }
-            } catch (ArrayIndexOutOfBoundsException ex) {
-
-            }
+            } catch (ArrayIndexOutOfBoundsException ignored) { }
         }
         // removing all that fell out the world or got too left
         for (int i = 0; i < getBodyCount(); i++) {
             if (GraphicsWorld.viewField < 100) {
-                break;
+                break; // Hack to not remove bodies until the correct screen size is set. Needs a proper fix
             }
             Body[] bodies = getBodies();
             Body body = bodies[i];
-            if (body.positionFX().xAsInt() < WorldGen.barrierX || body.positionFX().yAsInt() > 20000) {
+            if (body.positionFX().xAsInt() < WorldGen.barrierX || body.positionFX().yAsInt() > WorldGen.getLowestY() + 2000) {
                 if (body != carbody && body != leftwheel && body != rightwheel) {
                     removeBody(body);
                 }
@@ -203,7 +217,7 @@ public class GraphicsWorld extends World {
             drawLandscape(g);
             drawBodies(g); // draw all bodies, excluding car wheels
             drawCar(g); // draw car wheels
-            drawConstraints(g); // disabled
+            //drawConstraints(g); // don't draw constraints
         } catch (NullPointerException ex) {
             int l = scWidth * 2 / 3;
             int h = scHeight / 24;
@@ -216,10 +230,10 @@ public class GraphicsWorld extends World {
     
     private void drawBg(Graphics g) {
     	// some very boring code
-        if (GameplayCanvas.points > 291 && GameplayCanvas.points < 293) {
+        if (GameplayCanvas.points == 292) {
             currColBg = 0x2f92ff;
             currColLandscape = 0xffffff;
-        } else if (GameplayCanvas.points > 293 && GameplayCanvas.points < 300) {
+        } else if (GameplayCanvas.points == 293) {
             currColBg = colBg;
             currColLandscape = colLandscape;
         }
@@ -272,31 +286,20 @@ public class GraphicsWorld extends World {
         Body[] bodies = getBodies();
         int bodyCount = getBodyCount();
         for (int i = 0; i < bodyCount; i++) {
-            if (bodies[i] != leftwheel & bodies[i] != rightwheel) {
-                // default value, will be overwritten if it is an other type of body
-                int bodyType = MUserData.TYPE_FALLING_PLATFORM;
-                MUserData bodyUserData = null;
-                try {
-                    bodyUserData = (MUserData) bodies[i].getUserData();
-                    if (bodyUserData != null) {
-                        bodyType = bodyUserData.bodyType;
+            if (bodies[i] != leftwheel && bodies[i] != rightwheel) {
+                UserData userData = bodies[i].getUserData();
+                if (userData instanceof MUserData) {
+                    MUserData mUserData = (MUserData) userData;
+                    int bodyType = mUserData.bodyType;
+                    if (bodyType == MUserData.TYPE_ACCELERATOR) {
+                        g.setColor(mUserData.color);
+                    } else {
+                        g.setColor(currColBodies);
                     }
-                } catch (ClassCastException ex) {
-
-                } catch (NullPointerException ex) {
-                    
+                } else {
+                    g.setColor(currColBodies);
                 }
-                
-                g.setColor(currColBodies);
-                if (bodyType == MUserData.TYPE_ACCELERATOR) {
-                    g.setColor(bodyUserData.color);
-                }
-                try {
-                    drawBody(g, bodies[i]);
-                } catch (NullPointerException ex) {
-                    ex.printStackTrace();
-                    Logger.log("can't draw" + bodyType);
-                }
+                drawBody(g, bodies[i]);
             }
         }
     }
@@ -407,10 +410,6 @@ public class GraphicsWorld extends World {
     }
 
     private void drawConstraints(Graphics g) {
-        
-        // disable drawing constraints
-        if (true) return;
-        
         int constraintCount = getConstraintCount();
         Constraint[] constraints = getConstraints();
         for (int i = 0; i < constraintCount; i++) {
@@ -459,7 +458,7 @@ public class GraphicsWorld extends World {
         if (DebugMenu.discoMode) {
             g.setColor(random.nextInt(16777216));
         }
-        g.drawLine(x1, y1, x2, y2, thickness, zoomOut, betterGraphics);
+        g.drawLine(x1, y1, x2, y2, thickness, zoomOut, betterGraphics, zoomThickness);
     }
     
     private void drawGroundLine(Graphics g, int x1, int y1, int x2, int y2, int thickness) {
