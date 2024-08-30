@@ -146,9 +146,9 @@ public class GraphicsWorld extends World {
         leftwheel = new Body(lwX, lwY, wheelShape, true);
         rightwheel = new Body(rwX, rwY, wheelShape, true);
 
-        removeBody(carbody);
-        removeBody(leftwheel);
-        removeBody(rightwheel);
+        super.removeBody(carbody);
+        super.removeBody(leftwheel);
+        super.removeBody(rightwheel);
 
         addBody(carbody);
         carbody.addCollisionLayer(1);
