@@ -107,6 +107,8 @@ public class GameplayCanvas extends Container implements Runnable {
     private WorldGen worldgen;
     private FlipCounter flipCounter;
 
+    private Thread gameThread = null;
+
     public GameplayCanvas() {
         loadingProgress = 5;
         log("gcanvas constructor");
@@ -153,7 +155,8 @@ public class GameplayCanvas extends Container implements Runnable {
         Logger.setLogMessageDelay(50);
         currentEffects = new short[1][];
         log("gcanvas:starting thread");
-        (new Thread(this, "game canvas")).start();
+        gameThread = new Thread(this, "game canvas");
+        gameThread.start();
     }
     
     void reset() {
@@ -493,16 +496,11 @@ public class GameplayCanvas extends Container implements Runnable {
                     isWaiting = false;
                     
                     Thread.yield();
-
                     sleep = TICK_DURATION - (System.currentTimeMillis() - start);
                     sleep = Math.max(sleep, 0);
                 } else {
                     // if paused
-                    if (paused) {
-                        sleep = 200;
-                    } else {
-                        sleep = 0;
-                    }
+                    sleep = 200;
                     if (isVisible) {
                         repaint();
                     }
@@ -540,7 +538,7 @@ public class GameplayCanvas extends Container implements Runnable {
         drawHUD(g);
     }
 
-    public void repaint() {
+    public synchronized void repaint() {
     	try {
 	        paint(getUGraphics());
 	        flushGraphics();
@@ -758,10 +756,24 @@ public class GameplayCanvas extends Container implements Runnable {
     public void openMenu() {
         log("opening menu");
         stopped = true;
-        isFirstStart = false;
-        uninterestingDebug = false;
-        WorldGen.isEnabled = false;
-        RootContainer.setRootUIComponent(new MenuCanvas());
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                boolean successed = false;
+                while (!successed) {
+                    try {
+                        gameThread.join();
+                        successed = true;
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                isFirstStart = false;
+                uninterestingDebug = false;
+                WorldGen.isEnabled = false;
+                RootContainer.setRootUIComponent(new MenuCanvas());
+            }
+        }).start();
     }
     
     void resume() {
@@ -769,7 +781,6 @@ public class GameplayCanvas extends Container implements Runnable {
         if (worldgen != null) {
             worldgen.resume();
         }
-        repaint();
     }
 
     // also used as pause
@@ -779,19 +790,17 @@ public class GameplayCanvas extends Container implements Runnable {
         if (worldgen != null) {
             worldgen.pause();
         }
-        repaint();
         // to prevent siemens' bug that calls hideNotify right after showing canvas
         if (pauseDelay > 0) {
             if (previousPauseState == false) {
                 resume();
             }
         }
+        repaint();
     }
     
     public void onShow() {
         log("showNotify");
-        
-        repaint();
         
         // to prevent siemens' bug that calls hideNotify right after showing canvas
         pauseDelay = PAUSE_DELAY;
@@ -805,7 +814,6 @@ public class GameplayCanvas extends Container implements Runnable {
         if (world != null) {
             world.refreshScreenParameters(w, h);
         }
-        repaint();
     }
     
     private void pauseButtonPressed() {
@@ -896,7 +904,7 @@ public class GameplayCanvas extends Container implements Runnable {
         accel = false;
         return true;
     }
-    
+
     class FlipCounter {
         int step = 0;
         boolean flipDirection = false;
