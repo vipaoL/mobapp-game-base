@@ -179,7 +179,7 @@ public class WorldGen implements Runnable {
                 || (DebugMenu.whatTheGame && (nextStructRandomId < 6 || nextStructRandomId > 9))) {
             nextStructRandomId = rand.nextInt(idsCount); // 10: 0-9
         }
-        //nextStructRandomId = 1;
+        //nextStructRandomId = 21;
         prevStructRandomId = nextStructRandomId;
         if (DebugMenu.mgstructOnly) {
             nextStructRandomId+=stdStructsNumber + floorWeightInRandom;

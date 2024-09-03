@@ -544,6 +544,35 @@ public class GameplayCanvas extends Container implements Runnable {
 	        flushGraphics();
         } catch (Exception ex) { }
     }
+
+    private String nameBody(Body body) {
+        if (body == null) {
+            return " ";
+        } else if (body == world.getLandscape().getBody()) {
+            return "GND";
+        } else if (body == world.leftwheel) {
+            return "Lw";
+        } else if (body == world.carbody) {
+            return "Cb";
+        } else if (body == world.rightwheel) {
+            return "Rw";
+        } else {
+            return "?";
+        }
+    }
+
+    private String contactsToString(Contact[] contacts) {
+        String ret = " ";
+        for (int i = 0; i < contacts.length; i++) {
+            if (contacts[i] != null) {
+                ret += nameBody(contacts[i].body1());
+                ret += "-";
+                ret += nameBody(contacts[i].body2());
+            }
+            ret += " ";
+        }
+        return ret;
+    }
     
     // point counter, very beautiful pause menu,
     // debug info, on-screen log, game over screen
@@ -583,6 +612,19 @@ public class GameplayCanvas extends Container implements Runnable {
         	
             g.drawString("BAT: " + batLevel + "%", 0, hudLeftTextOffset, 0);
             hudLeftTextOffset += currentFontH;
+        }
+
+        g.setColor(0xffffff);
+        if (DebugMenu.showContacts) {
+            Contact[][] contacts = {
+                    world.getContactsForBody(world.leftwheel),
+                    world.getContactsForBody(world.carbody),
+                    world.getContactsForBody(world.rightwheel)};
+            String[] names = {"LW", "CB", "RW"};
+            for (int i = 0; i < contacts.length; i++) {
+                g.drawString(names[i] + contactsToString(contacts[i]), 0, hudLeftTextOffset, 0);
+                hudLeftTextOffset += currentFontH;
+            }
         }
         if (DebugMenu.isDebugEnabled) {
             // speedometer

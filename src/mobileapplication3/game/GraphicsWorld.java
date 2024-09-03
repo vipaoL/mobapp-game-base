@@ -110,8 +110,10 @@ public class GraphicsWorld extends World {
         int x = 0;
         if (WorldGen.isEnabled) {
             x = -3000;
+            //x = -1114;
         }
         addCar(x, -400, FXUtil.TWO_PI_2FX / 360 * 30);
+        //addCar(x, 14, FXUtil.TWO_PI_2FX / 360 * -50);
     }
 
     public void addCar(int spawnX, int spawnY, int ang2FX) {

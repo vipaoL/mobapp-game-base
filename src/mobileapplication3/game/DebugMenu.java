@@ -42,6 +42,7 @@ public class DebugMenu extends GenericMenu implements Runnable {
     public static boolean showLinePoints = false;
     public static boolean simulationMode = false;
     public static boolean whatTheGame = false;
+    public static boolean showContacts = false;
     
     public DebugMenu() {
     	statemap[1] = GenericMenu.STATE_INACTIVE; // set "-----" separator as inactive button
