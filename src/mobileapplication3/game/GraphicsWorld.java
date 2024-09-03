@@ -173,10 +173,10 @@ public class GraphicsWorld extends World {
         // for falling platforms
         for (int i = 0; i < waitingForDynamic.size(); i++) {
             try {
-                Integer timeRemaining = (Integer) waitingTime.elementAt(i);
-                timeRemaining -= diffTime;
-                waitingTime.setElementAt(timeRemaining, i);
-                if (timeRemaining <= 0) {
+                int intValue = ((Integer) waitingTime.elementAt(i)).intValue();
+                intValue -= diffTime;
+                waitingTime.setElementAt(new Integer(intValue), i);
+				if (intValue <= 0) {
                     ((Body) waitingForDynamic.elementAt(i)).setDynamic(true);
                     waitingForDynamic.removeElementAt(i);
                     waitingTime.removeElementAt(i);

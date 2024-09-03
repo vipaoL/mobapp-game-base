@@ -799,7 +799,6 @@ public class GameplayCanvas extends Container implements Runnable {
         log("opening menu");
         stopped = true;
         new Thread(new Runnable() {
-            @Override
             public void run() {
                 boolean successed = false;
                 while (!successed) {
