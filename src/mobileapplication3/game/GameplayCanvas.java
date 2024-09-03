@@ -837,7 +837,6 @@ public class GameplayCanvas extends Container implements Runnable {
                 resume();
             }
         }
-        repaint();
     }
     
     public void onShow() {
