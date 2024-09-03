@@ -18,11 +18,11 @@ import utils.MgStruct;
  */
 public class MenuCanvas extends GenericMenu implements Runnable {
 	
-    private String[] menuOptions = {
+    private final String[] menuOptions = {
     		"",
     		"Play",
-    		"Ext Structs",
-    		"Levels",
+    		"Load Structures",
+    		"Load World",
     		"About",
     		"Settings",
     		"Exit",

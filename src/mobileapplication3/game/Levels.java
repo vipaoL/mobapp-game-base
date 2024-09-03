@@ -42,7 +42,7 @@ public class Levels extends GenericMenu implements Runnable {
             e.printStackTrace();
             buttons[0] = e.toString();
         }
-    	buttons[0] = "Levels";
+    	buttons[0] = "Load emini \".phy\" world";
         // TODO: separate with pages -----------------------!
         buttons[buttons.length-1] = "Back";
         loadParams(buttons, 1, buttons.length - 1, buttons.length - 1);
