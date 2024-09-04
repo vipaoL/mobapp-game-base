@@ -40,10 +40,6 @@ public class MgStruct {
     public static int loadedFromResNumber = 0;
     public boolean loadCancelled = false;
     
-    String prefix = "file:///";
-    String root = "C:/";
-    String sep = "/";
-    
     public MgStruct() {
         Logger.log("MGStruct constructor");
         if (!isInited) {
@@ -70,11 +66,8 @@ public class MgStruct {
 				dis.close();
 			}
             return true;
-        } catch (IOException ex) {
-        	Logger.log(ex.toString());
-            return false;
-        } catch (NullPointerException ex) {
-        	Logger.log(ex.toString());
+        } catch (Exception ex) {
+        	Logger.log(path + " " + ex);
             return false;
         } finally {
         	try {
@@ -108,7 +101,7 @@ public class MgStruct {
                 try {
                     if (readFromDataInputStream(dis)) {
                         loadedFromFiles += 1;
-                        System.out.println(path + " loaded");
+                        Logger.log(path + " loaded");
                     }
                 } catch (IOException ex) {
                     ex.printStackTrace();
