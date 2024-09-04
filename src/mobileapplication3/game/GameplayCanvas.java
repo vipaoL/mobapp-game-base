@@ -261,6 +261,7 @@ public class GameplayCanvas extends Container implements Runnable {
                     }
 
                     isBusy = true;
+                    world.setSimulationArea(world.carX - world.viewField, world.carX + world.viewField);
                     world.tick();
                     if (!oneFrameTwoTicks || tick % 2 == 0) {
                         repaint();
