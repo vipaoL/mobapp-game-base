@@ -57,6 +57,7 @@ public class GameplayCanvas extends Container implements Runnable {
     
     private boolean paused = false;
     private boolean stopped = false;
+    private boolean isStopping = false;
     
     // screen
     private int scW, scH;
@@ -121,39 +122,6 @@ public class GameplayCanvas extends Container implements Runnable {
     }
     
     public void init() {
-        isBusy = false;
-        shouldWait = false;
-        isWaiting = false;
-        timeFlying = 10;
-        try {
-	        unlimitFPS = MobappGameSettings.isFPSUnlocked(unlimitFPS);
-	        showFPS = MobappGameSettings.isFPSShown(showFPS);
-	        oneFrameTwoTicks = MobappGameSettings.isSecFramesSkipEnabled(oneFrameTwoTicks);
-	        battIndicator = MobappGameSettings.isBattIndicatorEnabled(battIndicator);
-
-	        if (battIndicator) {
-	        	if (!Battery.checkAndInit()) {
-	        		battIndicator = false;
-	        	}
-	        }
-        } catch (Throwable ex) {
-			ex.printStackTrace();
-		}
-        
-        log("gcanvas init");
-        
-        if (world == null) {
-            // new world
-            setDefaultWorld();
-        } else {
-            // init an existing world
-            initWorld();
-        }
-        
-        world.refreshScreenParameters(scW, scH);
-        
-        Logger.setLogMessageDelay(50);
-        currentEffects = new short[1][];
         log("gcanvas:starting thread");
         gameThread = new Thread(this, "game canvas");
         gameThread.start();
@@ -174,6 +142,7 @@ public class GameplayCanvas extends Container implements Runnable {
     }
     
     private void initWorld() {
+    	log("initing world");
         world.setGravity(FXVector.newVector(0, 250 * GAME_SPEED_MULTIPLIER));
         world.getLandscape().getBody().shape().setElasticity(5);
         setLoadingProgress(40);
@@ -182,21 +151,21 @@ public class GameplayCanvas extends Container implements Runnable {
     }
     
     private void setDefaultWorld() {
-        log("gCanv:reading world");
+        log("reading world");
         PhysicsFileReader reader = new PhysicsFileReader(Platform.getResource("/emptyworld.phy"));
         setLoadingProgress(25);
         
-        log("gCanv:loading world");
+        log("loading world");
         World w = World.loadWorld(reader);
 
-        log("gCanv:new grWorld");
+        log("new grWorld");
         // there's siemens c65 stucks if obfucsation is enabled
         world = new GraphicsWorld(w);
 
-        log("gCanv:setting world");
+        log("setting world");
         initWorld();
 
-        log("gCanv:closing reader");
+        log("closing reader");
         try {
             reader.close();
         } catch (Exception ex) {
@@ -206,10 +175,43 @@ public class GameplayCanvas extends Container implements Runnable {
 
     // game thread with main cycle and preparing
     public void run() {
-        setLoadingProgress(80);
-        
         try {
-            log("gcanvas:thread started");
+            log("game thread started");
+            
+            isBusy = false;
+            shouldWait = false;
+            isWaiting = false;
+            timeFlying = 10;
+            try {
+            	log("reading settings...");
+    	        unlimitFPS = MobappGameSettings.isFPSUnlocked(unlimitFPS);
+    	        showFPS = MobappGameSettings.isFPSShown(showFPS);
+    	        oneFrameTwoTicks = MobappGameSettings.isSecFramesSkipEnabled(oneFrameTwoTicks);
+    	        battIndicator = MobappGameSettings.isBattIndicatorEnabled(battIndicator);
+
+    	        if (battIndicator) {
+    	        	if (!Battery.checkAndInit()) {
+    	        		battIndicator = false;
+    	        	}
+    	        }
+            } catch (Throwable ex) {
+    			ex.printStackTrace();
+    		}
+            
+            if (world == null) {
+                // new world
+                setDefaultWorld();
+            } else {
+                // re-init an existing world
+                initWorld();
+            }
+            
+            world.refreshScreenParameters(scW, scH);
+            
+            Logger.setLogMessageDelay(50);
+            currentEffects = new short[1][];
+            
+            setLoadingProgress(80);
 
             long sleep = 0;
             long start = 0;
@@ -227,7 +229,7 @@ public class GameplayCanvas extends Container implements Runnable {
 
             setLoadingProgress(100);
 
-            log("thread:starting game cycle");
+            log("starting game cycle");
 
             Logger.setLogMessageDelay(0);
             int baseTimestepFX = world.getTimestepFX();
@@ -464,7 +466,7 @@ public class GameplayCanvas extends Container implements Runnable {
                             if (gameoverCountdown < GAME_OVER_COUNTDOWN_STEPS) {
                                 gameoverCountdown++;
                             } else {
-                                openMenu();
+                                stop(true, false);
                             }
                         } else {
                             if (gameoverCountdown > 0) {
@@ -525,6 +527,7 @@ public class GameplayCanvas extends Container implements Runnable {
             log(ex.toString());
             ex.printStackTrace();
         }
+        Logger.log("game thread stopped");
     }
     
     public void paint(Graphics g) {
@@ -794,13 +797,20 @@ public class GameplayCanvas extends Container implements Runnable {
             currentEffects[id][i - 1] = data[i];
         }
     }
-    
-    public void openMenu() {
-        log("opening menu");
+
+    public void stop(final boolean openMenu, boolean blockUntilCompleted) {
+    	log("stopping game thread");
         stopped = true;
-        new Thread(new Runnable() {
+        if (isStopping) {
+        	return;
+        }
+        isStopping = true;
+        isFirstStart = false;
+        uninterestingDebug = false;
+        WorldGen.isEnabled = false;
+        Runnable stopperRunnable = new Runnable() {
             public void run() {
-                boolean successed = false;
+                boolean successed = gameThread == null;
                 while (!successed) {
                     try {
                         gameThread.join();
@@ -809,12 +819,18 @@ public class GameplayCanvas extends Container implements Runnable {
                         e.printStackTrace();
                     }
                 }
-                isFirstStart = false;
-                uninterestingDebug = false;
-                WorldGen.isEnabled = false;
-                RootContainer.setRootUIComponent(new MenuCanvas());
+                log("stopped");
+                if (openMenu) {
+                	RootContainer.setRootUIComponent(new MenuCanvas());
+                }
             }
-        }).start();
+        };
+
+        if (blockUntilCompleted) {
+        	stopperRunnable.run();
+        } else {
+        	new Thread(stopperRunnable).start();
+        }
     }
     
     void resume() {
@@ -882,7 +898,7 @@ public class GameplayCanvas extends Container implements Runnable {
             pauseButtonPressed();
         } else // menu
         if (keyCode == Keys.KEY_POUND | gameAction == Keys.GAME_D) {
-            openMenu();
+            stop(true, false);
         } else  // also pause. i'll rework it later
         if ((keyCode == Keys.KEY_STAR | gameAction == Keys.GAME_B)) {
             pauseButtonPressed();
@@ -936,7 +952,7 @@ public class GameplayCanvas extends Container implements Runnable {
             pauseButtonPressed();
         }
         if (menuTouched) {
-            openMenu();
+            stop(true, false);
         }
         pauseTouched = false;
         menuTouched = false;
