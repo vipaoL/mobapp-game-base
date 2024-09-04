@@ -92,7 +92,7 @@ public class GameplayCanvas extends Container implements Runnable {
     private int gameoverCountdown;
     private static final int GAME_OVER_COUNTDOWN_STEPS = 8;
     public static int timeFlying = 10;
-    private int timeMotorTurnedOff = 50;
+    private int ticksMotorTurnedOff = 50;
     private long lastBigTickTime;
     private int tick = 0;
     
@@ -319,18 +319,19 @@ public class GameplayCanvas extends Container implements Runnable {
                     carAngle = 360 - FXUtil.angleInDegrees2FX(world.carbody.rotation2FX());
 
                     // when the motor is turned on
-                    if (bigTick) if (accel) {
-                        timeMotorTurnedOff = 0;
+                    if (accel) {
+                        ticksMotorTurnedOff = 0;
                         if (timeFlying > 2) {
                             // apply rotational force
                             if (world.carbody.rotationVelocity2FX() > 100000000) {
-                                world.carbody.applyTorque(-world.carbody.rotationVelocity2FX()/16000*FORCE_MULTIPLIER);
+                            	int torque = -world.carbody.rotationVelocity2FX()/16000*FORCE_MULTIPLIER;
+                                world.carbody.applyTorque(convertByTimestep(torque));
                             } else {
-                            	int force = -10000;
+                            	int torque = -10000 * FORCE_MULTIPLIER;
                             	if (carBodyContacts && carAngle > 180 && carAngle < 300) {
-                            		force *= 2;
+                            		torque *= 2;
                             	}
-                                world.carbody.applyTorque(FXUtil.toFX(force*FORCE_MULTIPLIER));
+                                world.carbody.applyTorque(FXUtil.toFX(convertByTimestep(torque)));
                             }
                         } else {
                             // apply motor force when on the ground
@@ -342,8 +343,10 @@ public class GameplayCanvas extends Container implements Runnable {
                                     Logger.log(speedMultipiler);
                                 }
                             }
-                            int motorForceX = FXUtil.divideFX(FXUtil.toFX(Mathh.cos(carAngle - 15 + directionOffset) * speedMultipiler), TEN_FX * 5);
-                            int motorForceY = FXUtil.divideFX(FXUtil.toFX(Mathh.sin(carAngle - 15 + directionOffset) * speedMultipiler), TEN_FX * 5);
+                            int motorForceX = Mathh.cos(carAngle - 15 + directionOffset) * speedMultipiler;
+                            motorForceX = FXUtil.divideFX(FXUtil.toFX(convertByTimestep(motorForceX)), TEN_FX * 5);
+                            int motorForceY = Mathh.sin(carAngle - 15 + directionOffset) * speedMultipiler;
+                            motorForceY = FXUtil.divideFX(FXUtil.toFX(convertByTimestep(motorForceY)), TEN_FX * 5);
                             world.carbody.applyMomentum(new FXVector(motorForceX, -motorForceY));
                             boolean carBodyContacts = world.getContactsForBody(world.carbody)[0] != null;
                             if ((!leftWheelContacts && carBodyContacts) || rightWheelContacts) {
@@ -351,20 +354,22 @@ public class GameplayCanvas extends Container implements Runnable {
                                 if (rightWheelContacts) {
                                     force *= 2;
                                 }
-                                world.carbody.applyTorque(FXUtil.toFX(force*FORCE_MULTIPLIER));
+                                world.carbody.applyTorque(FXUtil.toFX(convertByTimestep(force * FORCE_MULTIPLIER)));
                             }
                         }
                     } else {
                         // brake for two seconds after motor turning off
-                        if (timeMotorTurnedOff < 40 && !uninterestingDebug) {
+                        if (ticksMotorTurnedOff < 40 && !uninterestingDebug) {
                             try {
                                 if (world.carbody.angularVelocity2FX() > 0) {
-                                    world.carbody.applyTorque(FXUtil.toFX(world.carbody.angularVelocity2FX() * GAME_SPEED_MULTIPLIER / 4000));
+                                    world.carbody.applyTorque(FXUtil.toFX(convertByTimestep(world.carbody.angularVelocity2FX() * GAME_SPEED_MULTIPLIER / 4000)));
                                 }
                                 if (timeFlying < 2) {
-                                    world.carbody.applyMomentum(new FXVector(-world.carbody.velocityFX().xFX*GAME_SPEED_MULTIPLIER/5, -world.carbody.velocityFX().yFX*GAME_SPEED_MULTIPLIER/5));
+                                    world.carbody.applyMomentum(new FXVector(convertByTimestep(-world.carbody.velocityFX().xFX*GAME_SPEED_MULTIPLIER/5), convertByTimestep(-world.carbody.velocityFX().yFX*GAME_SPEED_MULTIPLIER/5)));
                                 }
-                            	timeMotorTurnedOff++;
+                                if (bigTick) {
+                                	ticksMotorTurnedOff++;
+                                }
                             } catch (NullPointerException ex) {
                                 ex.printStackTrace();
                             }
@@ -492,6 +497,10 @@ public class GameplayCanvas extends Container implements Runnable {
             ex.printStackTrace();
         }
         Logger.log("game thread stopped");
+    }
+    
+    private int convertByTimestep(int valueInDefaultTimestep) {
+    	return unlimitFPS ? valueInDefaultTimestep * tickTime / TICK_DURATION : valueInDefaultTimestep;
     }
 
 	private int getLowestSafeY() {
