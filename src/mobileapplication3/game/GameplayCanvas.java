@@ -424,28 +424,7 @@ public class GameplayCanvas extends Container implements Runnable {
                     } else {
                         bigTickN = 0;
                         
-                        // start the final countdown and open main menu if the car
-                        // lies upside down or fell out of the world
-                        int lowestY = getLowestSafeY();
-                        feltUnderTheWorld = GraphicsWorld.carY > 2000 + lowestY;
-                        if (feltUnderTheWorld || (carAngle > 140 && carAngle < 220 && world.carbody.getContacts()[0] != null) || gameOver) {
-                            if (uninterestingDebug) {
-                                gameoverCountdown = 0;
-                            }
-                            if (gameoverCountdown < GAME_OVER_COUNTDOWN_STEPS) {
-                                gameoverCountdown++;
-                            } else {
-                            	gameOver();
-                            }
-                        } else {
-                            if (gameoverCountdown > 0) {
-                                gameoverCountdown--;
-                            } else {
-                                gameoverCountdown = 0;
-                            }
-                        }
-
-                        world.tickCustomBodies();
+                        tickBodiesOutsideTheWorld();
                     }
                     
                     if (System.currentTimeMillis() - lastBattUpdateTime > BATT_UPD_PERIOD) {
@@ -498,6 +477,31 @@ public class GameplayCanvas extends Container implements Runnable {
         }
         Logger.log("game thread stopped");
     }
+
+	private void tickBodiesOutsideTheWorld() {
+		// start the final countdown and open main menu if the car
+		// lies upside down or fell out of the world
+		int lowestY = getLowestSafeY();
+		feltUnderTheWorld = GraphicsWorld.carY > 2000 + lowestY;
+		if (feltUnderTheWorld || (carAngle > 140 && carAngle < 220 && world.carbody.getContacts()[0] != null) || gameOver) {
+		    if (uninterestingDebug) {
+		        gameoverCountdown = 0;
+		    }
+		    if (gameoverCountdown < GAME_OVER_COUNTDOWN_STEPS) {
+		        gameoverCountdown++;
+		    } else {
+		    	gameOver();
+		    }
+		} else {
+		    if (gameoverCountdown > 0) {
+		        gameoverCountdown--;
+		    } else {
+		        gameoverCountdown = 0;
+		    }
+		}
+
+		world.tickCustomBodies();
+	}
     
     private int convertByTimestep(int valueInDefaultTimestep) {
     	return unlimitFPS ? valueInDefaultTimestep * tickTime / TICK_DURATION : valueInDefaultTimestep;
@@ -576,7 +580,7 @@ public class GameplayCanvas extends Container implements Runnable {
     	setSimulationArea();
     	world.tick();
     	tickCustomBodyInteractions(getCarContacts());
-    	world.tickCustomBodies();
+    	tickBodiesOutsideTheWorld();
     	worldgen.tick();
     	world.drawWorld(g);
     	if (world.carY > getLowestSafeY()) {
@@ -862,6 +866,10 @@ public class GameplayCanvas extends Container implements Runnable {
     }
     
     public void gameOver() {
+    	if (gameOver) {
+    		return;
+    	}
+
     	if (feltUnderTheWorld) {
     		stop(true, false);
     		return;
