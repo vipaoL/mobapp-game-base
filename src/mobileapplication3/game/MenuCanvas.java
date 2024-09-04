@@ -32,12 +32,20 @@ public class MenuCanvas extends GenericMenu implements Runnable {
     
     // states
     private boolean isInited = false;
-    private boolean waitingToStartGame = false;
     private boolean isGameStarted = false;
     
-    private MgStruct mgStruct; // for loading external structures
+    private MgStruct mgStruct;
+    private GameplayCanvas bg = null;
     
     private static boolean areExtStructsLoaded = false;
+    
+    public MenuCanvas(GameplayCanvas bg) {
+    	this();
+    	this.bg = bg;
+    	if (bg != null) {
+    		bgColor = COLOR_TRANSPARENT;
+    	}
+    }
 
     public MenuCanvas() {
         Logger.log("menu:constr");
@@ -65,10 +73,6 @@ public class MenuCanvas extends GenericMenu implements Runnable {
         long start = 0; //
 
         while (!isStopped) { // *** main cycle of menu drawing ***
-            if (waitingToStartGame) {
-                startGame();
-                return;
-            }
             if (!isPaused) {
                 start = System.currentTimeMillis();
                 repaint(); // refresh picture on screen
@@ -88,8 +92,11 @@ public class MenuCanvas extends GenericMenu implements Runnable {
 
     public void paint(Graphics g) {
         try {
-            g.setColor(0);
-            g.fillRect(0, 0, w, h);
+            if (bg != null) {
+            	if (!bg.paintAsBG(g)) {
+            		bg = null;
+            	}
+            }
             if (isInited) {
                 super.paint(g);
                 tick();
@@ -102,11 +109,10 @@ public class MenuCanvas extends GenericMenu implements Runnable {
             return;
         }
         isGameStarted = true;
-        waitingToStartGame = false;
         Logger.log("menu:startGame()");
         repaint();
         try {
-            isStopped = true;
+            stop();
             log("menu:new gCanvas");
             GameplayCanvas gameCanvas = new GameplayCanvas();
             log("menu:setting gCanvas displayable");
@@ -137,28 +143,35 @@ public class MenuCanvas extends GenericMenu implements Runnable {
         if (selected == 1) { // Play
             Logger.log("menu:selected == 1 -> gen = true");
             WorldGen.isEnabled = true;
-            repaint();
-            waitingToStartGame = true;
+            stop();
+            startGame();
         }
         if (selected == 2) { // Ext Structs / Reload
             loadMG();
         }
         if (selected == 3) { // Levels
-            isStopped = true;
+            stop();
             WorldGen.isEnabled = false;
             RootContainer.setRootUIComponent(new Levels());
         }
         if (selected == 4) { // About
-            isStopped = true;
+        	stop();
             RootContainer.setRootUIComponent(new AboutScreen());
         }
         if (selected == 5) { // Settings
-            isStopped = true;
+        	stop();
             RootContainer.setRootUIComponent(new SettingsScreen());
         }
         if (selected == 6) { // Exit
-            isStopped = true;
+        	stop();
             Platform.exit();
+        }
+    }
+    
+    void stop() {
+    	isStopped = true;
+        if (bg != null) {
+        	bg.stop(false, true);
         }
     }
     

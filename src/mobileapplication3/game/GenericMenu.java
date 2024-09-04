@@ -32,9 +32,9 @@ public abstract class GenericMenu extends Container {
     public int selected;
     
     // colors
-    private int normalColor = 0xffffff, selectedColor = 0xff4040,
+    protected int normalColor = 0xffffff, selectedColor = 0xff4040,
             pressedColor = 0xE03838, specialOptionActivatedColor = 0xffff00,
-            colUnreachable = 0x888888, colReachableEnabled = 0x88ff00;
+            colUnreachable = 0x888888, colReachableEnabled = 0x88ff00, bgColor = 0x000000;
     private String[] options;
     
     private boolean isPressedByPointerNow, firstload = true,
@@ -64,8 +64,10 @@ public abstract class GenericMenu extends Container {
     public static final int KEY_SOFT_RIGHT = -7;
     
     public void paint(Graphics g) {
-    	g.setColor(0, 0, 0);
-        g.fillRect(x0, y0, Math.max(w, h), Math.max(w, h));
+    	if (bgColor >= 0) {
+    		g.setColor(bgColor);
+    		g.fillRect(x0, y0, Math.max(w, h), Math.max(w, h));
+    	}
         if (isInited) {
             for (int i = firstDrawable; i < options.length; i++) {
             	if (font != null) {

@@ -29,9 +29,10 @@ import utils.MobappGameSettings;
 public class GraphicsWorld extends World {
 	
 	private static final int BIGSCREEN_SIDE = 480;
+	private static final int CAR_COLLISION_LAYER = 1;
 
-    int colBg = 0x000000;
-    int colLandscape = 0x4444ff;
+    public int colBg = 0x000000;
+    public int colLandscape = 0x4444ff;
     int colBodies = 0xffffff;
     int colFunctionalObjects = 0xff5500;
     int currColBg;
@@ -62,6 +63,8 @@ public class GraphicsWorld extends World {
     public Body carbody;
     public Body leftwheel;
     public Body rightwheel;
+    private Joint leftjoint;
+	private Joint rightjoint;
     Random random = new Random();
     
     // list of all bodies car touched (for falling platforms)
@@ -153,21 +156,35 @@ public class GraphicsWorld extends World {
         super.removeBody(rightwheel);
 
         addBody(carbody);
-        carbody.addCollisionLayer(1);
+        carbody.addCollisionLayer(CAR_COLLISION_LAYER);
         addBody(leftwheel);
-        leftwheel.addCollisionLayer(1);
+        leftwheel.addCollisionLayer(CAR_COLLISION_LAYER);
         addBody(rightwheel);
-        rightwheel.addCollisionLayer(1);
+        rightwheel.addCollisionLayer(CAR_COLLISION_LAYER);
 
-        Joint leftjoint = new Joint(carbody, leftwheel, FXVector.newVector(-carbodyLength / 2 + wheelRadius - 2, wheelRadius * 2 / 3), FXVector.newVector(0, 0), false);
-        Joint rightjoint = new Joint(carbody, rightwheel, FXVector.newVector(carbodyLength / 2 - wheelRadius + 2, wheelRadius * 2 / 3), FXVector.newVector(0, 0), false);
+        leftjoint = new Joint(carbody, leftwheel, FXVector.newVector(-carbodyLength / 2 + wheelRadius - 2, wheelRadius * 2 / 3), FXVector.newVector(0, 0), false);
+        rightjoint = new Joint(carbody, rightwheel, FXVector.newVector(carbodyLength / 2 - wheelRadius + 2, wheelRadius * 2 / 3), FXVector.newVector(0, 0), false);
         addConstraint(leftjoint);
         addConstraint(rightjoint);
         
         WorldGen.bgZeroPoint = spawnX;
     }
     
-    public void tickBodies() {
+    public void destroyCar() {
+    	removeConstraint(leftjoint);
+    	removeConstraint(rightjoint);
+    	leftwheel.removeCollisionLayer(CAR_COLLISION_LAYER);
+    	carbody.removeCollisionLayer(CAR_COLLISION_LAYER);
+    	rightwheel.removeCollisionLayer(CAR_COLLISION_LAYER);
+    	int forceFX = -FXUtil.ONE_FX * 500;
+    	leftwheel.applyMomentum(new FXVector(-forceFX, forceFX));
+    	rightwheel.applyMomentum(new FXVector(forceFX, forceFX));
+    	leftwheel.shape().setElasticity(100);
+    	carbody.shape().setElasticity(100);
+    	getLandscape().getShape().setElasticity(200);
+    }
+    
+    public void tickCustomBodies() {
         int diffTime = (int) (System.currentTimeMillis() - prevBodyTickTime);
         // ticking timers on each body car touched and set it as dynamic
         // for falling platforms

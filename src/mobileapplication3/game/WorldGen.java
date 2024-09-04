@@ -66,6 +66,7 @@ public class WorldGen implements Runnable {
     private Landscape lndscp;
     private MgStruct mgStruct;
     private StructLog structlogger;
+    private Thread wgThread = null;
     
     // counter
     private int linesInStructure = 0;
@@ -98,9 +99,7 @@ public class WorldGen implements Runnable {
         Logger.log("wg:run()");
         while(isEnabled) {
             try {
-                long startTime = System.currentTimeMillis();
                 tick();
-                mspt = (int) (System.currentTimeMillis() - startTime);
             } catch (NullPointerException ex) {
                 ex.printStackTrace();
             }
@@ -109,6 +108,7 @@ public class WorldGen implements Runnable {
     }
     
     public void tick() {
+    	long startTime = System.currentTimeMillis();
         if (!paused || needSpeed) {
             w.refreshCarPos();
             
@@ -166,6 +166,7 @@ public class WorldGen implements Runnable {
         } catch (InterruptedException ex) {
             ex.printStackTrace();
         }
+        mspt = (int) (System.currentTimeMillis() - startTime);
     }
     
     private void placeNext() {
@@ -240,6 +241,21 @@ public class WorldGen implements Runnable {
     public void resume() {
         Logger.log("wg resume");
         paused = false;
+    }
+    
+    public void stop() {
+    	Logger.log("stopping wg thread...");
+    	isEnabled = false;
+    	boolean successed = wgThread == null;
+        while (!successed) {
+            try {
+                wgThread.join();
+                successed = true;
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        Logger.log("wg: stopped");
     }
     
     private void reset() {
