@@ -987,7 +987,10 @@ public class GameplayCanvas extends Container implements Runnable {
 
     // keyboard events
     public boolean keyReleased(int keyCode, int count) {
-    	if (gameOver) return false;
+    	if (gameOver) {
+            return false;
+        }
+
         // turn off motor
         accel = false;
         if (timeFlying > 0) {
@@ -1047,9 +1050,11 @@ public class GameplayCanvas extends Container implements Runnable {
         return !gameOver;
     }
     public boolean pointerDragged(int x, int y) {
-    	if (gameOver) return false;
-        if (pauseTouched | menuTouched) {
-            if (x - pointerX > 3 | y - pointerY > 3) {
+    	if (gameOver) {
+            return false;
+        }
+        if (pauseTouched || menuTouched) {
+            if (x - pointerX > 3 || y - pointerY > 3) {
                 log((x - pointerX) + "dx/dy" + (y - pointerY));
                 log("btnPress cancelled:dragged");
                 pauseTouched = false;
