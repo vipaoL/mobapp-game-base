@@ -71,11 +71,18 @@ public class GraphicsWorld extends World {
     Vector waitingForDynamic = new Vector();
     Vector waitingTime = new Vector();
     long prevBodyTickTime = System.currentTimeMillis();
-    
+
+    public GraphicsWorld() {
+        init();
+    }
+
     public GraphicsWorld(World w) {
         super(w);
-        
-        bg = bgOverride;
+        init();
+    }
+
+    private void init() {
+    	bg = bgOverride;
         
         try {
         	bg = bg || MobappGameSettings.isBGEnabled(false);

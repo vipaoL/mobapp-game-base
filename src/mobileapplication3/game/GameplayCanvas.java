@@ -157,26 +157,15 @@ public class GameplayCanvas extends Container implements Runnable {
     }
     
     private void setDefaultWorld() {
-        log("reading world");
-        PhysicsFileReader reader = new PhysicsFileReader(Platform.getResource("/emptyworld.phy"));
         setLoadingProgress(25);
         
-        log("loading world");
-        World w = World.loadWorld(reader);
-
-        log("new grWorld");
+        log("creating world");
         // there's siemens c65 stucks if obfucsation is enabled
-        world = new GraphicsWorld(w);
+        world = new GraphicsWorld();
 
-        log("setting world");
+        setLoadingProgress(30);
+        log("setting up the world...");
         initWorld();
-
-        log("closing reader");
-        try {
-            reader.close();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
     }
 
     // game thread with main cycle and preparing
