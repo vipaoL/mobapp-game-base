@@ -5,10 +5,6 @@
  */
 package utils;
 
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.util.Enumeration;
-
 import mobileapplication3.platform.FileUtils;
 
 /**
