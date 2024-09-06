@@ -8,7 +8,6 @@ import utils.MobappGameSettings;
 public class SettingsScreen extends GenericMenu implements Runnable {
     private static String[] menuOpts = {
             "Better graphics",
-            "Unlock FPS",
             "Show FPS",
             "Skip every second frame",
             "Enable background",
@@ -71,18 +70,15 @@ public class SettingsScreen extends GenericMenu implements Runnable {
                     MobappGameSettings.toggleBetterGraphics();
                     break;
                 case 1:
-                    MobappGameSettings.toggleFPSUnlocked();
-                    break;
-                case 2:
                 	MobappGameSettings.toggleFPSShown();
                 	break;
-                case 3:
+                case 2:
                 	MobappGameSettings.toggleSecFramesSkipEnabled();
                 	break;
-                case 4:
+                case 3:
                 	MobappGameSettings.toggleBG();
                 	break;
-                case 5:
+                case 4:
                 	if (!MobappGameSettings.isBattIndicatorEnabled()) {
                 		if (!Battery.checkAndInit()) {
                 			batFailed = true;
@@ -118,12 +114,11 @@ public class SettingsScreen extends GenericMenu implements Runnable {
         }
         void refreshStates() {
         	setEnabledFor(MobappGameSettings.isBetterGraphicsEnabled(), 0);
-        	setEnabledFor(MobappGameSettings.isFPSUnlocked(), 1);
-        	setEnabledFor(MobappGameSettings.isFPSShown(), 2);
-        	setEnabledFor(MobappGameSettings.isSecFramesSkipEnabled(), 3);
-        	setEnabledFor(MobappGameSettings.isBGEnabled(), 4);
+        	setEnabledFor(MobappGameSettings.isFPSShown(), 1);
+        	setEnabledFor(MobappGameSettings.isSecFramesSkipEnabled(), 2);
+        	setEnabledFor(MobappGameSettings.isBGEnabled(), 3);
         	if (!batFailed) {
-        		setEnabledFor(MobappGameSettings.isBattIndicatorEnabled(), 5);
+        		setEnabledFor(MobappGameSettings.isBattIndicatorEnabled(), 4);
         	} else {
         		setStateFor(STATE_INACTIVE, 5);
         	}

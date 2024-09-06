@@ -191,7 +191,7 @@ public class GameplayCanvas extends Container implements Runnable {
 
 			try {
             	log("reading settings...");
-    	        unlimitFPS = MobappGameSettings.isFPSUnlocked(unlimitFPS);
+    	        unlimitFPS = true || MobappGameSettings.isFPSUnlocked(unlimitFPS);
     	        showFPS = MobappGameSettings.isFPSShown(showFPS);
     	        oneFrameTwoTicks = MobappGameSettings.isSecFramesSkipEnabled(oneFrameTwoTicks);
     	        battIndicator = MobappGameSettings.isBattIndicatorEnabled(battIndicator) && Battery.checkAndInit();
