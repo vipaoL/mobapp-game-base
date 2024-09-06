@@ -26,17 +26,15 @@ public class AboutScreen extends GenericMenu implements Runnable {
     private static final String URL2 = "https://t.me/mobapp_game";
     private static final String URL2_PREVIEW = "TG: @mobapp_game";
     private static final String[] STRINGS = {"A cross-platform game", "on emini physics engine"};
-    private static final String[] MENU_OPTS = {""/*there is qr code*/,
+    private static final String[] MENU_OPTS = {""/*there is the qr code*/,
         URL_PREVIEW,
         URL2_PREVIEW,
         "Version: " + Platform.getAppVersion(),
         "Back"};
     private int counter = 17;
     private int scW, scH;
-    private int extraVerticalMargin = 0;
     private int qrSide = 0;
     private int margin = 0;
-    private static int fontSizeCache = -1;
     private Font font = Font.getFont(Font.FACE_SYSTEM, Font.STYLE_PLAIN, Font.SIZE_SMALL),
             font3 = Font.getFont(Font.FACE_SYSTEM, Font.STYLE_PLAIN, Font.SIZE_LARGE);
     private int fontH = font.getHeight();
@@ -50,7 +48,7 @@ public class AboutScreen extends GenericMenu implements Runnable {
     
     public void init() {
         setFirstDrawable(1);
-        (new Thread(this, "about canvas")).start();
+        (new Thread(this)).start();
     }
     
     protected void onSetBounds(int x0, int y0, int w, int h) {
@@ -58,26 +56,18 @@ public class AboutScreen extends GenericMenu implements Runnable {
         if (scW == w && scH == h && qr != null) {
             return;
         }
+
         scW = w;
         scH = h;
-        qrSide = scH/* - font2H*/ - fontH * (STRINGS.length + MENU_OPTS.length + 6);
+        qrSide = scH - fontH * (STRINGS.length + MENU_OPTS.length + 6);
         margin = fontH/2;
         if (qrSide > scW - margin*2) {
             qrSide = scW - margin*2;
         }
-        
-        int headerAndQrH = fontH * (STRINGS.length) + 3*margin + qrSide;
-        int buttonsFontH = findOptimalFont(scW, scH - headerAndQrH - margin, MENU_OPTS);
-        extraVerticalMargin = (scH - (headerAndQrH + (3*MENU_OPTS.length/2)*buttonsFontH + margin)) / 8;
-        if (extraVerticalMargin < 0) {
-            extraVerticalMargin = 0;
-        }
-        
-        int menuBtnsOffsetH = drawHeaderAndQR(null);
-        int menuH = scH - menuBtnsOffsetH - margin;
-        loadCanvasParams(
-        		0, h - menuH,
-                scW, menuH);
+
+        int headerAndQrH = drawHeaderAndQR(null);
+        int menuH = scH - headerAndQrH;
+        loadCanvasParams(0, h - menuH, scW, menuH);
         
         try {
             qr = Image.createImage("/qr.png").scale(qrSide, qrSide);
@@ -167,7 +157,7 @@ public class AboutScreen extends GenericMenu implements Runnable {
             g.setColor(255, 255, 255);
         }
         
-        int offset = margin + extraVerticalMargin;
+        int offset = margin;
         for (int i = 0; i < STRINGS.length; i++) {
             if (g != null) {
                 g.setFont(font);
@@ -175,8 +165,7 @@ public class AboutScreen extends GenericMenu implements Runnable {
             }
             offset += fontH;
         }
-        offset += margin + extraVerticalMargin;
-        
+        offset += margin;
         if (g != null && selected != 0) {
             try {
                 g.drawImage(qr, scW / 2, offset, Graphics.HCENTER | Graphics.TOP);
@@ -193,8 +182,7 @@ public class AboutScreen extends GenericMenu implements Runnable {
             }
         }
         offset += qrSide;
-        offset += margin;// + extraVerticalMargin;
-        //g.drawLine(0, offset, scW, offset);
+        offset += margin;
         return offset;
     }
     
@@ -223,7 +211,7 @@ public class AboutScreen extends GenericMenu implements Runnable {
         }
         if (selected == MENU_OPTS.length - 2) {
             counter+=1;
-            if (counter == 20) {
+            if (counter >= 20) {
                 isStopped = true;
                 
                 WorldGen.isEnabled = true;
