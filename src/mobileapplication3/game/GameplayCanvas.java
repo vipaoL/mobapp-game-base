@@ -577,7 +577,9 @@ public class GameplayCanvas extends Container implements Runnable {
     	world.tick();
     	tickCustomBodyInteractions(getCarContacts());
     	tickGameOverCheck();
-    	worldgen.tick();
+    	if (worldgen != null) {
+    		worldgen.tick();
+    	}
     	world.drawWorld(g);
     	if (world.carY > getLowestSafeY()) {
     		if (tick % 10 == 0) {
@@ -925,7 +927,9 @@ public class GameplayCanvas extends Container implements Runnable {
         final GameplayCanvas inst = this;
         Runnable stopperRunnable = new Runnable() {
             public void run() {
-            	worldgen.stop();
+            	if (worldgen != null) {
+            		worldgen.stop();
+            	}
                 boolean successed = gameThread == null;
                 while (!successed) {
                     try {

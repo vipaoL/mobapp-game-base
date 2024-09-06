@@ -33,8 +33,9 @@ public class Levels extends GenericMenu implements Runnable {
         Logger.log("Levels:constr");
         buttons = new String[2];
         try {
-            getLevels();
+            levelPaths = getLevels();
             buttons = new String[levelPaths.length + 2];
+            System.arraycopy(levelPaths, 0, buttons, 1, levelPaths.length);
         } catch (SecurityException e) {
             e.printStackTrace();
             buttons[0] = "no read permission";
@@ -54,9 +55,9 @@ public class Levels extends GenericMenu implements Runnable {
         (new Thread(this, "levels")).start();
     }
     
-    public void getLevels() {
+    public String[] getLevels() {
         Logger.log("Levels:getLevels()");
-        levelPaths = GameFileUtils.listFilesInAllPlaces(LEVELS_FOLDER_NAME);
+        return GameFileUtils.listFilesInAllPlaces(LEVELS_FOLDER_NAME);
     }
     
     public void startLevel(final String path) {
@@ -91,7 +92,7 @@ public class Levels extends GenericMenu implements Runnable {
             RootContainer.setRootUIComponent(new MenuCanvas());
         } else {
             try {
-                startLevel(levelPaths[selected]);
+                startLevel(levelPaths[selected - 1]);
             } catch (Exception ex) {
                 Platform.showError(ex);
             }

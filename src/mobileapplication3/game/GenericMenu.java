@@ -68,7 +68,7 @@ public abstract class GenericMenu extends Container {
     		g.setColor(bgColor);
     		g.fillRect(x0, y0, Math.max(w, h), Math.max(w, h));
     	}
-        if (isInited) {
+        if (isInited && options != null) {
             for (int i = firstDrawable; i < options.length; i++) {
             	if (font != null) {
             		g.setFont(font);
@@ -77,7 +77,7 @@ public abstract class GenericMenu extends Container {
                 int offset = 0;
 
                 if (i == selected) { // highlighting selected option
-                    offset = Mathh.sin(tick * 360 / 10); //waving
+                    offset = Mathh.sin(tick * 360 / 10); // waving animation
                     g.setColor(selectedColor);
                     if (isPressedByPointerNow) {
                         g.setColor(pressedColor);
@@ -101,7 +101,9 @@ public abstract class GenericMenu extends Container {
 
                 int x = x0 + w / 2;
                 int y = y0 + k * (i + 1 - firstDrawable) - fontH / 2 - h / (options.length + 1 - firstDrawable) / 2 + offset*Font.getDefaultFont().getHeight() / 8000;
-                g.drawString(options[i], x, y, Graphics.HCENTER | Graphics.TOP); // draw option on (x, y) //
+                if (options[i] != null) {
+                	g.drawString(options[i], x, y, Graphics.HCENTER | Graphics.TOP); // draw option on (x, y) //
+                }
 
                 if (DebugMenu.isDebugEnabled && DebugMenu.showFontSize) {
                     g.drawString(String.valueOf(font.getSize()), x0, y0, 0); // display text size (for debug)
