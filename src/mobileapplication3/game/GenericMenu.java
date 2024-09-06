@@ -22,8 +22,6 @@ import mobileapplication3.ui.Keys;
  */
 public abstract class GenericMenu extends Container {
     private static final int PAUSE_DELAY = 5;
-    private static final int KEY_PRESS_DELAY = 5;
-    
     public int w, h;
     private int x0, y0, fontH, tick = 0, k = 10, keyPressDelay = 0,
             keyPressDelayAfterShowing = 5, firstReachable, lastReachable,
@@ -39,7 +37,7 @@ public abstract class GenericMenu extends Container {
     
     private boolean isPressedByPointerNow, firstload = true,
             isSpecialOptionActivated = false, isSelectPressed = false,
-            isSelectAlreadyPressed = false, isStatemapEnabled = false,
+            isStatemapEnabled = false,
             fontFound = false;
     
     private boolean isKnownButton = true, isInited = false;
@@ -52,7 +50,7 @@ public abstract class GenericMenu extends Container {
     public static final int STATE_NORMAL_ENABLED = 1;
     
     
-    // key codes
+    // key codes TODO move to ui/Keys
     public static final int SIEMENS_KEY_FIRE = -26;
     public static final int SIEMENS_KEY_UP = -59;
     public static final int SIEMENS_KEY_DOWN = -60;
@@ -61,7 +59,6 @@ public abstract class GenericMenu extends Container {
     public static final int SIEMENS_KEY_LEFT_SOFT = -1;
     public static final int SIEMENS_KEY_RIGHT_SOFT = -4;
     public static final int SE_KEY_BACK = -11;
-    public static final int KEY_SOFT_RIGHT = -7;
     
     public void paint(Graphics g) {
     	if (bgColor >= 0) {
@@ -93,7 +90,6 @@ public abstract class GenericMenu extends Container {
                         g.setColor(colUnreachable);
                     }
                 }
-
 
                 if (i == specialOption && isSpecialOptionActivated) { // painting special option in a different color
                     g.setColor(specialOptionActivatedColor);
@@ -199,67 +195,57 @@ public abstract class GenericMenu extends Container {
         }
         this.selected = selected;
         isPressedByPointerNow = true;
-        return true;
+        return !isStatemapEnabled || stateMap[selected] != STATE_INACTIVE;
     }
     
     private boolean handleKeyStates(int keyStates) {
         if (keyStates == 0) {
         	return false;
         }
-        
+
         isPaused = false;
-        isSelectAlreadyPressed = isSelectPressed;
+        switch (keyStates) {
+        	case Keys.LEFT:
+        		selected = lastReachable; // back
+			case Keys.RIGHT:
+			case Keys.FIRE:
+				isSelectPressed = true;
+            	isKnownButton = true;
+				return !isStatemapEnabled || stateMap[selected] != STATE_INACTIVE;
+		}
         
-        if (keyPressDelay < 1) {
-            keyPressDelay = KEY_PRESS_DELAY;
-            if (keyStates == Keys.LEFT) {
-                selected = lastReachable; // back
-            }
+        boolean needRepeat;
+        do {
             switch (keyStates) {
-				case Keys.RIGHT:
-				case Keys.FIRE:
-				case Keys.LEFT:
-					isSelectPressed = true;
-	            	isKnownButton = true;
-					break;
-			}
+            	case Keys.UP:
+            		isKnownButton = true;
+                    isPaused = false;
+                    if (selected > firstReachable) {
+                        selected--;
+                    } else {
+                        selected = lastReachable;
+                    }
+                    break;
+            	case Keys.DOWN:
+                    isKnownButton = true;
+                    isPaused = false;
+                    if (selected < lastReachable) {
+                        selected++;
+                    } else {
+                        selected = firstReachable;
+                    }
+                    break;
+            }
             
-            boolean needRepeat = false;
-            do {
-                needRepeat = false;
-                switch (keyStates) {
-                	case Keys.UP:
-                		isKnownButton = true;
-                        isPaused = false;
-                        if (selected > firstReachable) {
-                            selected--;
-                        } else {
-                            selected = lastReachable;
-                        }
-                        //Main.log("up");
-                        break;
-                	case Keys.DOWN:
-                		//Main.log("down");
-                        isKnownButton = true;
-                        isPaused = false;
-                        if (selected < lastReachable) {
-                            selected++;
-                        } else {
-                            selected = firstReachable;
-                        }
-                        break;
-                }
-                
-                if (isStatemapEnabled && !isSelectPressed) {
-                    needRepeat = stateMap[selected] == STATE_INACTIVE;
-                }
-            } while (needRepeat);
-        }
-        return isSelectPressed;// && !isSelectAlreadyPressed;
+            needRepeat = !isSelectPressed && isStatemapEnabled && stateMap[selected] == STATE_INACTIVE;
+        } while (needRepeat);
+
+        return isSelectPressed;
     }
     
     public boolean keyRepeated(int keyCode, int pressedCount) {
-    	return keyPressed(keyCode, pressedCount);
+    	handleKeyPressed(keyCode);
+    	return true;
     }
     
     public boolean keyPressed(int keyCode, int count) {
@@ -322,22 +308,6 @@ public abstract class GenericMenu extends Container {
                 selected = 9;
                 pressed = true;
                 break;
-            case Keys.KEY_NUM0:
-                break;
-            case KEY_SOFT_RIGHT:
-                break;
-            case SE_KEY_BACK:
-                break;
-            case SIEMENS_KEY_LEFT:
-                break;
-            case Keys.KEY_POUND:
-                isKnownButton = true;
-                if (keyPressDelay < 1) {
-                    keyPressDelay = KEY_PRESS_DELAY;
-                    return true;
-                } else {
-                    return false;
-                }
             case SIEMENS_KEY_UP:
                 isKnownButton = true;
                 handleKeyStates(Keys.UP);
@@ -346,24 +316,20 @@ public abstract class GenericMenu extends Container {
                 isKnownButton = true;
                 handleKeyStates(Keys.DOWN);
                 break;
+            case Keys.KEY_NUM0: // back
+            case Keys.KEY_SOFT_RIGHT:
+            case SE_KEY_BACK:
             case SIEMENS_KEY_RIGHT:
-                isKnownButton = true;
-                if (keyPressDelay < 1) {
-                    keyPressDelay = KEY_PRESS_DELAY;
-                    return true;
-                } else {
-                    return false;
-                }
+            	return handleKeyStates(Keys.LEFT);
+            case Keys.KEY_POUND:
+            case Keys.KEY_SOFT_LEFT: // select
+            case SIEMENS_KEY_LEFT:
             case SIEMENS_KEY_FIRE:
-            case -6: // left soft button
-                handleKeyStates(Keys.FIRE);
+                return handleKeyStates(Keys.FIRE);
             default:
                 return handleKeyStates(RootContainer.getGameActionn(keyCode));
         }
         selected += firstReachable;
-        if (keyCode == Keys.KEY_NUM0 || keyCode == KEY_SOFT_RIGHT || keyCode == SIEMENS_KEY_LEFT || keyCode == SE_KEY_BACK) {
-            return handleKeyStates(Keys.LEFT);
-        }
         
         if (pressed) {
             isKnownButton = true;
@@ -372,13 +338,13 @@ public abstract class GenericMenu extends Container {
                 return true;
             }
         }
+
         return false;
     }
     
     public void keyReleased(int keyCode) {
         keyPressDelay = 0;
         isSelectPressed = false;
-        isSelectAlreadyPressed = false;
     }
     
     protected void loadCanvasParams(int x0, int y0, int w, int h) {
@@ -410,7 +376,7 @@ public abstract class GenericMenu extends Container {
     
     /**
      * Should be placed to showNotify.
-     * <p>handleHideNotify() in its right place is also needed.
+     * <p>onHide() in its right place is also needed.
      * <p>
      * It prevents siemens' bug that calls hideNotify right after
      * calling showNotify.
@@ -435,8 +401,6 @@ public abstract class GenericMenu extends Container {
         this.h = h;
         reloadCanvasParameters(w, h);
     }
-    
-    
     
     public void loadParams(String[] options, int[] statemap) {
         loadParams(options, 0, options.length - 1, options.length - 1, statemap);
