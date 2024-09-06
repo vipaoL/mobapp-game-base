@@ -565,6 +565,7 @@ public class GameplayCanvas extends Container implements Runnable {
     	world.setTimestepFX(baseTimestepFX);
     	world.refreshCarPos();
     	setSimulationArea();
+    	world.tickCustomBodies();
     	world.tick();
     	tickCustomBodyInteractions(getCarContacts());
     	tickGameOverCheck();
