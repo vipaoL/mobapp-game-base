@@ -81,6 +81,7 @@ public class GameplayCanvas extends Container implements Runnable {
     private int tickTime;
     private int prevTickTime;
     private int fps;
+    private int tps;
     
     // touchscreen
     private int pointerX = 0, pointerY = 0;
@@ -95,6 +96,8 @@ public class GameplayCanvas extends Container implements Runnable {
     private int ticksMotorTurnedOff = 50;
     private long lastBigTickTime;
     private int tick = 0;
+    private int framesFromLastFPSMeasure = 0;
+    private int ticksFromLastTPSMeasure = 0;
     
     public static short[][] currentEffects = new short[1][];
     
@@ -237,7 +240,6 @@ public class GameplayCanvas extends Container implements Runnable {
             Logger.setLogMessageDelay(0);
             baseTimestepFX = world.getTimestepFX();
             long lastFPSMeasureTime = System.currentTimeMillis();
-            int framesFromLastFPSMeasure = 0;
             long lastBattUpdateTime = 0;
 
             // Main game cycle
@@ -248,6 +250,8 @@ public class GameplayCanvas extends Container implements Runnable {
                 		lastFPSMeasureTime = System.currentTimeMillis();
                 		fps = framesFromLastFPSMeasure * 1000 / dtFromLastFPSMeasure;
                 		framesFromLastFPSMeasure = 0;
+                		tps = ticksFromLastTPSMeasure * 1000 / dtFromLastFPSMeasure;
+                		ticksFromLastTPSMeasure = 0;
                 	}
 
                 	prevTickTime = tickTime;
@@ -262,12 +266,13 @@ public class GameplayCanvas extends Container implements Runnable {
                     	lastBigTickTime = start;
                     	bigTick = true;
                     }
+                    boolean skipThisFrame = tick % 2 != 0 && oneFrameTwoTicks;
 
                     isBusy = true;
                     world.refreshCarPos();
                     setSimulationArea();
                     world.tick();
-                    if ((!oneFrameTwoTicks || tick % 2 == 0) && !gameOver) {
+                    if (!skipThisFrame) {
                         repaint();
                     }
                     isBusy = false;
@@ -441,7 +446,7 @@ public class GameplayCanvas extends Container implements Runnable {
                             ex.printStackTrace();
                         }
                     }
-                    framesFromLastFPSMeasure++;
+                    ticksFromLastTPSMeasure++;
 
                     isWaiting = false;
                     
@@ -610,11 +615,14 @@ public class GameplayCanvas extends Container implements Runnable {
     }
 
     public synchronized void repaint() {
-    	try {
-    		Graphics g = getUGraphics();
-	        paint(g);
-	        flushGraphics();
-        } catch (Exception ex) { }
+    	if (!gameOver) {
+	    	try {
+	    		Graphics g = getUGraphics();
+		        paint(g);
+		        flushGraphics();
+		        framesFromLastFPSMeasure++;
+	        } catch (Exception ex) { }
+    	}
     }
 
     private String nameBody(Body body) {
@@ -743,11 +751,7 @@ public class GameplayCanvas extends Container implements Runnable {
                     g.setColor(255, 0, 0);
                 }
             }
-            if (oneFrameTwoTicks) {
-                g.drawString("FPS:" + fps/2 + " TPS:" + fps, 0, hudLeftTextOffset, 0);
-            } else {
-                g.drawString("FPS:" + fps, 0, hudLeftTextOffset, 0);
-            }
+            g.drawString("FPS:" + fps + " TPS:" + tps, 0, hudLeftTextOffset, 0);
             hudLeftTextOffset += currentFontH;
         }
         
