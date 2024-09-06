@@ -103,6 +103,13 @@ public class MenuCanvas extends GenericMenu implements Runnable {
             }
         } catch (Exception ex) { }
     }
+    
+    protected void onSetBounds(int x0, int y0, int w, int h) {
+    	super.onSetBounds(x0, y0, w, h);
+    	if (bg != null) {
+    		bg.setSize(w, h);
+    	}
+    }
 
     public void startGame() {
         if (isGameStarted) {
