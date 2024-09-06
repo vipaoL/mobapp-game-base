@@ -49,7 +49,7 @@ public class GameplayCanvas extends Container implements Runnable {
     private int hintVisibleTimer = 120; // in ticks
     private boolean unlimitFPS = true;
     private boolean showFPS = false;
-    private boolean oneFrameTwoTicks = false;
+    private boolean oneFrameTwoTicks = true;
     private boolean battIndicator = false;
     private int batLevel;
     
@@ -189,19 +189,15 @@ public class GameplayCanvas extends Container implements Runnable {
             isWaiting = false;
             timeFlying = 10;
 
-            new Thread(new Runnable() {
-				public void run() {
-					try {
-		            	log("reading settings...");
-		    	        unlimitFPS = MobappGameSettings.isFPSUnlocked(unlimitFPS);
-		    	        showFPS = MobappGameSettings.isFPSShown(showFPS);
-		    	        oneFrameTwoTicks = MobappGameSettings.isSecFramesSkipEnabled(oneFrameTwoTicks);
-		    	        battIndicator = MobappGameSettings.isBattIndicatorEnabled(battIndicator) && Battery.checkAndInit();
-		            } catch (Throwable ex) {
-		    			ex.printStackTrace();
-		    		}
-				}
-			}).start();
+			try {
+            	log("reading settings...");
+    	        unlimitFPS = MobappGameSettings.isFPSUnlocked(unlimitFPS);
+    	        showFPS = MobappGameSettings.isFPSShown(showFPS);
+    	        oneFrameTwoTicks = MobappGameSettings.isSecFramesSkipEnabled(oneFrameTwoTicks);
+    	        battIndicator = MobappGameSettings.isBattIndicatorEnabled(battIndicator) && Battery.checkAndInit();
+            } catch (Throwable ex) {
+    			ex.printStackTrace();
+    		}
             
             if (world == null) {
                 // new world
@@ -223,10 +219,16 @@ public class GameplayCanvas extends Container implements Runnable {
             int bigTickN = 0;
 
             // init music player if enabled
-            if (DebugMenu.isDebugEnabled && DebugMenu.music) {
+            if (DebugMenu.music) {
                 log("Starting sound");
                 Sound sound = new Sound();
                 sound.start();
+            }
+            
+            if (DebugMenu.simulationMode) {
+                world.rightwheel.setDynamic(false);
+                world.carbody.setDynamic(false);
+                world.leftwheel.setDynamic(false);
             }
 
             setLoadingProgress(100);
@@ -262,12 +264,11 @@ public class GameplayCanvas extends Container implements Runnable {
                     	lastBigTickTime = start;
                     	bigTick = true;
                     }
-                    boolean skipThisFrame = tick % 2 != 0 && oneFrameTwoTicks;
 
                     isBusy = true;
-                    world.refreshCarPos();
                     setSimulationArea();
                     world.tick();
+                    boolean skipThisFrame = tick % 2 != 0 && oneFrameTwoTicks;
                     if (!skipThisFrame) {
                         repaint();
                     }
@@ -279,118 +280,17 @@ public class GameplayCanvas extends Container implements Runnable {
                     rightWheelContacts = carContacts[1][0] != null;
                     carBodyContacts = carContacts[2][0] != null;
                     
+                    tickCustomBodyInteractions(carContacts);
+                    
+                    // some things should be performed once at a fixed interval (50ms, or 20 times per second)
                     if (bigTick) {
 	                    if ((!leftWheelContacts && !rightWheelContacts)) {
 	                        timeFlying += 1;
 	                    } else {
 	                        timeFlying = 0;
 	                    }
-                    }
 
-                    // set motor power according to car speed
-                    // (fast start and saving limited speed)
-                    FXVector velFX = world.carbody.velocityFX();
-                    int vX = velFX.xAsInt();
-                    int vY = velFX.yAsInt();
-                    if (currentEffects[EFFECT_SPEED] != null) {
-                        if (currentEffects[EFFECT_SPEED][0] > 0) {
-                            vX = vX * 100 / currentEffects[EFFECT_SPEED][2];
-                            vY = vY * 100 / currentEffects[EFFECT_SPEED][2];
-                        }
-                    }
-                    carVelocitySqr = (vX * vX + vY * vY) / 4;
-                    if (carVelocitySqr > 1000000) {
-                        speedMultipiler = 4;
-                        speedoState = 2;
-                    } else if (carVelocitySqr > 100000) {
-                        speedMultipiler = 30;
-                        speedoState = 1;
-                    } else {
-                        speedMultipiler = 40;
-                        speedoState = 0;
-                    }
-                    if (uninterestingDebug) {
-                        speedMultipiler = 60;
-                        timeFlying = 0;
-                    }
-
-                    // getting car angle
-                    carAngle = 360 - FXUtil.angleInDegrees2FX(world.carbody.rotation2FX());
-
-                    // when the motor is turned on
-                    if (accel) {
-                        ticksMotorTurnedOff = 0;
-                        if (timeFlying > 2) {
-                            // apply rotational force
-                            if (world.carbody.rotationVelocity2FX() > 100000000) {
-                            	int torque = -world.carbody.rotationVelocity2FX()/8000;
-                                world.carbody.applyTorque(convertByTimestep(torque));
-                            } else {
-                            	int torque = -20000;
-                            	if (carBodyContacts && carAngle > 180 && carAngle < 300) {
-                            		torque = -40000;
-                            	}
-                                world.carbody.applyTorque(FXUtil.toFX(convertByTimestep(torque)));
-                            }
-                        } else {
-                            // apply motor force when on the ground
-                            int directionOffset = 0;
-                            if (currentEffects[EFFECT_SPEED] != null) {
-                                if (currentEffects[EFFECT_SPEED][0] > 0) {
-                                    directionOffset = currentEffects[EFFECT_SPEED][1];
-                                    speedMultipiler = speedMultipiler * currentEffects[EFFECT_SPEED][2] / 100;
-                                    Logger.log(speedMultipiler);
-                                }
-                            }
-                            int motorForceX = Mathh.cos(carAngle - 15 + directionOffset) * speedMultipiler;
-                            motorForceX = FXUtil.divideFX(FXUtil.toFX(convertByTimestep(motorForceX)), TEN_FX * 5);
-                            int motorForceY = Mathh.sin(carAngle - 15 + directionOffset) * speedMultipiler;
-                            motorForceY = FXUtil.divideFX(FXUtil.toFX(convertByTimestep(motorForceY)), TEN_FX * 5);
-                            world.carbody.applyMomentum(new FXVector(motorForceX, -motorForceY));
-                            boolean carBodyContacts = world.getContactsForBody(world.carbody)[0] != null;
-                            if ((!leftWheelContacts && carBodyContacts) || rightWheelContacts) {
-                                int force = -12000;
-                                if (rightWheelContacts) {
-                                    force = -24000;
-                                }
-                                world.carbody.applyTorque(FXUtil.toFX(convertByTimestep(force)));
-                            }
-                        }
-                    } else {
-                        // brake for two seconds after motor turning off
-                        if (ticksMotorTurnedOff < 40 && !uninterestingDebug) {
-                            try {
-                                if (world.carbody.angularVelocity2FX() > 0) {
-                                    world.carbody.applyTorque(FXUtil.toFX(convertByTimestep(world.carbody.angularVelocity2FX() / 2000)));
-                                }
-                                if (timeFlying < 2) {
-                                    world.carbody.applyMomentum(new FXVector(convertByTimestep(-world.carbody.velocityFX().xFX/2), convertByTimestep(-world.carbody.velocityFX().yFX/2)));
-                                }
-                                if (bigTick) {
-                                	ticksMotorTurnedOff++;
-                                }
-                            } catch (NullPointerException ex) {
-                                ex.printStackTrace();
-                            }
-                        }
-                    }
-
-                    tickCustomBodyInteractions(carContacts);
-
-                    if (bigTick) {
-	                    tickEffects();
-
-                        if (DebugMenu.simulationMode) {
-                            world.rightwheel.setDynamic(false);
-                            world.carbody.setDynamic(false);
-                            world.leftwheel.setDynamic(false);
-
-                            world.carbody.translate(new FXVector(FXUtil.ONE_FX*100, 0), 0);
-                            world.leftwheel.translate(new FXVector(FXUtil.ONE_FX*100, 0), 0);
-                            world.rightwheel.translate(new FXVector(FXUtil.ONE_FX*100, 0), 0);
-                        }
-
-                        if (isWorldLoaded) {
+	                    if (isWorldLoaded) {
                             hintVisibleTimer--;
                         }
 
@@ -408,27 +308,125 @@ public class GameplayCanvas extends Container implements Runnable {
                             }
                             flipCounter.tick();
                         }
+
+                        if (DebugMenu.simulationMode) {
+                            world.carbody.translate(new FXVector(FXUtil.ONE_FX*100, 0), 0);
+                            world.leftwheel.translate(new FXVector(FXUtil.ONE_FX*100, 0), 0);
+                            world.rightwheel.translate(new FXVector(FXUtil.ONE_FX*100, 0), 0);
+                        }
+
+                        tickEffects();
+
+                        if (bigTickN < 3) {
+                        	if (bigTickN == 1) {
+                        		world.tickCustomBodies();
+                        	}
+                        	
+                        	if (bigTick) {
+                        		bigTickN++;
+                        	}
+                        } else {
+                            bigTickN = 0;
+                            tickGameOverCheck();
+                            if (System.currentTimeMillis() - lastBattUpdateTime > BATT_UPD_PERIOD) {
+                            	batLevel = Battery.getBatteryLevel();
+                            	lastBattUpdateTime = System.currentTimeMillis();
+                            }
+                        }
+                    }
+
+                    // getting car angle
+                    carAngle = 360 - FXUtil.angleInDegrees2FX(world.carbody.rotation2FX());
+
+                    // when the motor is turned on
+                    if (accel) {
+                        ticksMotorTurnedOff = 0;
+                        if (timeFlying <= 2 || uninterestingDebug) {
+                            // apply motor force when on the ground
+
+                        	// set motor power according to car speed
+                            // (fast start and saving limited speed)
+                            FXVector velFX = world.carbody.velocityFX();
+                            int vX = velFX.xAsInt();
+                            int vY = velFX.yAsInt();
+                            if (currentEffects[EFFECT_SPEED] != null) {
+                                if (currentEffects[EFFECT_SPEED][0] > 0) {
+                                    vX = vX * 100 / currentEffects[EFFECT_SPEED][2];
+                                    vY = vY * 100 / currentEffects[EFFECT_SPEED][2];
+                                }
+                            }
+                            
+                            if (uninterestingDebug) {
+                                speedMultipiler = 250000;
+                            } else {
+	                            carVelocitySqr = (vX * vX + vY * vY) / 4;
+	                            if (carVelocitySqr > 1000000) {
+	                                speedMultipiler = 16000;
+	                                speedoState = 2;
+	                            } else if (carVelocitySqr > 100000) {
+	                                speedMultipiler = 123000;
+	                                speedoState = 1;
+	                            } else {
+	                                speedMultipiler = 160000;
+	                                speedoState = 0;
+	                            }
+                            }
+
+                            int directionOffset = 0;
+                            if (currentEffects[EFFECT_SPEED] != null) {
+                                if (currentEffects[EFFECT_SPEED][0] > 0) {
+                                    directionOffset = currentEffects[EFFECT_SPEED][1];
+                                    speedMultipiler = speedMultipiler * currentEffects[EFFECT_SPEED][2] / 100;
+                                    Logger.log(speedMultipiler);
+                                }
+                            }
+                            int motorForceX = Mathh.cos(carAngle - 15 + directionOffset) * speedMultipiler / 50;
+                            int motorForceY = Mathh.sin(carAngle - 15 + directionOffset) * speedMultipiler / -50;
+                            world.carbody.applyMomentum(new FXVector(convertByTimestep(motorForceX), convertByTimestep(motorForceY)));
+
+                            boolean carBodyContacts = world.getContactsForBody(world.carbody)[0] != null;
+                            if ((!leftWheelContacts && carBodyContacts) || rightWheelContacts) {
+                                int torque;
+                                if (rightWheelContacts) {
+                                    torque = -100000000;
+                                } else {
+                                	torque = -50000000;
+                                }
+                                world.carbody.applyTorque(convertByTimestep(torque));
+                            }
+                        } else {
+                            // apply rotational force
+                            if (world.carbody.rotationVelocity2FX() < 100000000) {
+                            	int torque = convertByTimestep(-80000000);
+                            	if (carBodyContacts && carAngle > 170 && carAngle < 300) {
+                            		torque = torque << 1;
+                            	}
+                            	world.carbody.applyTorque(torque);
+                            }
+                        }
+                    } else {
+                        // brake for two seconds after motor turning off
+                        if (ticksMotorTurnedOff < 40 && !uninterestingDebug) {
+                            try {
+                                if (world.carbody.angularVelocity2FX() > 0) {
+                                    world.carbody.applyTorque(2 * convertByTimestep(world.carbody.angularVelocity2FX()));
+                                }
+                                if (timeFlying < 2 && !uninterestingDebug) {
+                                    world.carbody.applyMomentum(new FXVector(convertByTimestep(-world.carbody.velocityFX().xFX/2), convertByTimestep(-world.carbody.velocityFX().yFX/2)));
+                                }
+                                if (bigTick) {
+                                	ticksMotorTurnedOff++;
+                                }
+                            } catch (NullPointerException ex) {
+                                ex.printStackTrace();
+                            }
+                        }
                     }
                     
                     if (tick < 3) {
                     	tick++;
                     } else {
                     	tick = 0;
-                    }
-
-                    if (bigTickN < 3) {
-                    	if (bigTick) {
-                    		bigTickN++;
-                    	}
-                    } else {
-                        bigTickN = 0;
-                        
-                        tickBodiesOutsideTheWorld();
-                    }
-                    
-                    if (System.currentTimeMillis() - lastBattUpdateTime > BATT_UPD_PERIOD) {
-                    	batLevel = Battery.getBatteryLevel();
-                    	lastBattUpdateTime = System.currentTimeMillis();
                     }
 
                     while (shouldWait) {
@@ -477,7 +475,7 @@ public class GameplayCanvas extends Container implements Runnable {
         Logger.log("game thread stopped");
     }
 
-	private void tickBodiesOutsideTheWorld() {
+	private void tickGameOverCheck() {
 		// start the final countdown and open main menu if the car
 		// lies upside down or fell out of the world
 		int lowestY = getLowestSafeY();
@@ -498,12 +496,10 @@ public class GameplayCanvas extends Container implements Runnable {
 		        gameoverCountdown = 0;
 		    }
 		}
-
-		world.tickCustomBodies();
 	}
     
     private int convertByTimestep(int valueInDefaultTimestep) {
-    	return unlimitFPS ? valueInDefaultTimestep * tickTime / TICK_DURATION : valueInDefaultTimestep;
+    	return unlimitFPS ? valueInDefaultTimestep / TICK_DURATION * tickTime : valueInDefaultTimestep;
     }
 
 	private int getLowestSafeY() {
@@ -511,6 +507,7 @@ public class GameplayCanvas extends Container implements Runnable {
 	}
 
 	private void setSimulationArea() {
+		world.refreshCarPos(); 
 		world.setSimulationArea(world.carX - world.viewField, world.carX + world.viewField);
 	}
     
@@ -579,7 +576,7 @@ public class GameplayCanvas extends Container implements Runnable {
     	setSimulationArea();
     	world.tick();
     	tickCustomBodyInteractions(getCarContacts());
-    	tickBodiesOutsideTheWorld();
+    	tickGameOverCheck();
     	worldgen.tick();
     	world.drawWorld(g);
     	if (world.carY > getLowestSafeY()) {
