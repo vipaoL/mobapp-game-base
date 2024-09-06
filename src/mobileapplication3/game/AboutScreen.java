@@ -48,7 +48,7 @@ public class AboutScreen extends GenericMenu implements Runnable {
     
     public void init() {
         setFirstDrawable(1);
-        (new Thread(this)).start();
+        (new Thread(this, "about")).start();
     }
     
     protected void onSetBounds(int x0, int y0, int w, int h) {
