@@ -80,6 +80,7 @@ public class GameplayCanvas extends Container implements Runnable {
     private int prevTickTime;
     private int fps;
     private int tps;
+    private String statusMessage = null;
     
     // touchscreen
     private int pointerX = 0, pointerY = 0;
@@ -128,16 +129,17 @@ public class GameplayCanvas extends Container implements Runnable {
     }
     
     public void init() {
-        log("gcanvas:starting thread");
+        log("starting game thread");
         gameThread = new Thread(this, "game canvas");
         gameThread.start();
     }
     
     void reset() {
-        log("reset");
+        log("resetting the world");
         points = 0;
         gameoverCountdown = 0;
         if (WorldGen.isEnabled) {
+        	log("starting wg");
             worldgen = new WorldGen(world);
             flipCounter = new FlipCounter();
             log("wg started");
@@ -164,7 +166,7 @@ public class GameplayCanvas extends Container implements Runnable {
         world = new GraphicsWorld();
 
         setLoadingProgress(30);
-        log("setting up the world...");
+        log("setting the world");
         initWorld();
     }
 
@@ -179,7 +181,7 @@ public class GameplayCanvas extends Container implements Runnable {
             timeFlying = 10;
 
 			try {
-            	log("reading settings...");
+            	log("reading settings");
     	        unlimitFPS = true || MobappGameSettings.isFPSUnlocked(unlimitFPS);
     	        showFPS = MobappGameSettings.isFPSShown(showFPS);
     	        oneFrameTwoTicks = MobappGameSettings.isSecFramesSkipEnabled(oneFrameTwoTicks);
@@ -209,7 +211,7 @@ public class GameplayCanvas extends Container implements Runnable {
 
             // init music player if enabled
             if (DebugMenu.music) {
-                log("Starting sound");
+                log("starting sound");
                 Sound sound = new Sound();
                 sound.start();
             }
@@ -590,10 +592,11 @@ public class GameplayCanvas extends Container implements Runnable {
     	drawBg(g);
         if (loadingProgress < 100) {
             drawLoading(g);
+            Logger.paint(g);
         } else {
             world.drawWorld(g);
+            drawHUD(g);
         }
-        drawHUD(g);
     }
 
     public synchronized void repaint() {
@@ -823,10 +826,13 @@ public class GameplayCanvas extends Container implements Runnable {
         int h = scH / 24;
         g.drawRect(scW / 2 - l / 2, scH * 2 / 3, l, h);
         g.fillRect(scW / 2 - l / 2, scH * 2 / 3, l*loadingProgress/100, h);
+        if (statusMessage != null) {
+        	g.drawString(statusMessage, this.w/2, this.h, HCENTER | BOTTOM);
+        }
     }
     public void setLoadingProgress(int percents) {
         loadingProgress = percents;
-        log(percents + "%");
+        Logger.log(percents + "%");
         repaint();
     }
     
@@ -838,8 +844,9 @@ public class GameplayCanvas extends Container implements Runnable {
     
     // log and repaint
     private void log(String text) {
+    	statusMessage = text;
         Logger.log(text);
-        if (Logger.isOnScreenLogEnabled()) repaint();
+        if (Logger.isOnScreenLogEnabled() || loadingProgress < 100) repaint();
     }
     
     public void giveEffect(short[] data) {
@@ -899,13 +906,9 @@ public class GameplayCanvas extends Container implements Runnable {
     public int getColorBlueComponent(int color) {
     	return color & 0xff;
     }
-    
-    public void openMenu() {
-    	RootContainer.setRootUIComponent(new MenuCanvas());
-    }
 
     public void stop(final boolean openMenu, boolean blockUntilCompleted) {
-    	log("stopping game thread...");
+    	log("stopping game thread");
         stopped = true;
         if (isStopping) {
         	return;
