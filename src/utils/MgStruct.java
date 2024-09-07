@@ -169,8 +169,18 @@ public class MgStruct {
     
     void saveStructToStorage(short[][] data) {
         Logger.log("savivg new structure, id=" + loadedStructsNumber);
+        structStorage = increaseArrayIfNeeded(structStorage, loadedStructsNumber, 8);
         structStorage[loadedStructsNumber] = data;
         loadedStructsNumber++;
+    }
+    
+    short[][][] increaseArrayIfNeeded(short[][][] array, int newElementIndex, int inc) {
+    	if (newElementIndex >= array.length) {
+    		short[][][] newArray = new short[array.length + inc][][];
+    		System.arraycopy(array, 0, newArray, 0, array.length);
+    		return newArray;
+    	}
+    	return array;
     }
     
     boolean isArrContain(short[] arr, short a) {
