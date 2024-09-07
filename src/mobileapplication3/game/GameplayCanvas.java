@@ -180,6 +180,10 @@ public class GameplayCanvas extends Container implements Runnable {
             isWaiting = false;
             timeFlying = 10;
 
+            boolean wasPaused = true;
+            tickTime = TICK_DURATION;
+            prevTickTime = TICK_DURATION;
+
 			try {
             	log("reading settings");
     	        unlimitFPS = true || MobappGameSettings.isFPSUnlocked(unlimitFPS);
@@ -244,9 +248,13 @@ public class GameplayCanvas extends Container implements Runnable {
                 	}
 
                 	prevTickTime = tickTime;
-                	tickTime = (int) (System.currentTimeMillis() - start);
-                    if (unlimitFPS) {
-                    	world.setTimestepFX(baseTimestepFX*Mathh.constrain(1, (tickTime + prevTickTime + 1) / 2, 100)/50);
+                    if (!wasPaused) {
+                        tickTime = (int) (System.currentTimeMillis() - start);
+                        if (unlimitFPS) {
+                            world.setTimestepFX(baseTimestepFX * Mathh.constrain(1, (tickTime + prevTickTime + 1) / 2, 100) / 50);
+                        }
+                    } else {
+                        wasPaused = false;
                     }
 
                     start = System.currentTimeMillis();
@@ -438,6 +446,7 @@ public class GameplayCanvas extends Container implements Runnable {
                     sleep = Math.max(sleep, 0);
                 } else {
                     // if paused
+                    wasPaused = true;
                     sleep = 200;
                     if (isVisible) {
                         repaint();
