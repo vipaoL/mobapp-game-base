@@ -9,7 +9,6 @@ public class SettingsScreen extends GenericMenu implements Runnable {
     private static String[] menuOpts = {
             "Better graphics",
             "Show FPS",
-            "Skip every second frame",
             "Enable background",
             "Show battery level",
             "Debug settings",
@@ -18,7 +17,6 @@ public class SettingsScreen extends GenericMenu implements Runnable {
         
         // array with states of all buttons (active/inactive/enabled)
         private final int[] statemap = new int[menuOpts.length];
-        private static int fontSizeCache = -1;
         private boolean batFailed = false;
         
         public SettingsScreen() {
@@ -26,7 +24,7 @@ public class SettingsScreen extends GenericMenu implements Runnable {
 		}
         
         public void init() {
-            fontSizeCache = getFontSize();
+            getFontSize();
             
             setSpecialOption(menuOpts.length - 2); // highlight "Debug settings" if enabled
             setIsSpecialOptnActivated(DebugMenu.isDebugEnabled);
@@ -73,12 +71,9 @@ public class SettingsScreen extends GenericMenu implements Runnable {
                 	MobappGameSettings.toggleFPSShown();
                 	break;
                 case 2:
-                	MobappGameSettings.toggleSecFramesSkipEnabled();
-                	break;
-                case 3:
                 	MobappGameSettings.toggleBG();
                 	break;
-                case 4:
+                case 3:
                 	if (!MobappGameSettings.isBattIndicatorEnabled()) {
                 		if (!Battery.checkAndInit()) {
                 			batFailed = true;
@@ -115,12 +110,11 @@ public class SettingsScreen extends GenericMenu implements Runnable {
         void refreshStates() {
         	setEnabledFor(MobappGameSettings.isBetterGraphicsEnabled(), 0);
         	setEnabledFor(MobappGameSettings.isFPSShown(), 1);
-        	setEnabledFor(MobappGameSettings.isSecFramesSkipEnabled(), 2);
-        	setEnabledFor(MobappGameSettings.isBGEnabled(), 3);
+        	setEnabledFor(MobappGameSettings.isBGEnabled(), 2);
         	if (!batFailed) {
-        		setEnabledFor(MobappGameSettings.isBattIndicatorEnabled(), 4);
+        		setEnabledFor(MobappGameSettings.isBattIndicatorEnabled(), 3);
         	} else {
-        		setStateFor(STATE_INACTIVE, 4);
+        		setStateFor(STATE_INACTIVE, 3);
         	}
         }
     }

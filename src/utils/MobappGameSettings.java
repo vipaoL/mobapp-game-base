@@ -9,9 +9,7 @@ public class MobappGameSettings {
 		    IS_SETUP_WIZARD_COMPLETED = "wizardCompleted",
 			MGSTRUCTS_FOLDER_PATH = "mgPath",
 		    IS_BETTER_GRAPHICS_ENABLED = "btrGr",
-    		IS_FPS_UNLOCKED = "unlFPS",
 		    SHOW_FPS = "showFPS",
-		    SKIP_SECOND_FRAMES = "skipSecFrames",
 		    SHOW_BG = "enBG",
 		    BATTERY_INDICATOR = "Batt";
     
@@ -27,9 +25,7 @@ public class MobappGameSettings {
     	            IS_SETUP_WIZARD_COMPLETED,
     	            MGSTRUCTS_FOLDER_PATH,
     	            IS_BETTER_GRAPHICS_ENABLED,
-    	            IS_FPS_UNLOCKED,
     	            SHOW_FPS,
-    	            SKIP_SECOND_FRAMES,
     	            SHOW_BG,
     	            BATTERY_INDICATOR
     	        }, RECORD_STORE_SETTINGS);
@@ -73,24 +69,6 @@ public class MobappGameSettings {
     
     ///
     
-    public static boolean isSecFramesSkipEnabled() {
-        return getSettingsInst().getBool(SKIP_SECOND_FRAMES);
-    }
-    
-    public static boolean isSecFramesSkipEnabled(boolean defaultValue) {
-        return getSettingsInst().getBool(SKIP_SECOND_FRAMES, defaultValue);
-    }
-    
-    public static void setSecFramesSkipEnabled(boolean b) {
-    	getSettingsInst().set(SKIP_SECOND_FRAMES, b);
-    }
-    
-    public static boolean toggleSecFramesSkipEnabled() {
-    	return getSettingsInst().toggleBool(SKIP_SECOND_FRAMES);
-    }
-    
-    ///
-    
     public static boolean isFPSShown() {
         return getSettingsInst().getBool(SHOW_FPS);
     }
@@ -105,24 +83,6 @@ public class MobappGameSettings {
     
     public static boolean toggleFPSShown() {
     	return getSettingsInst().toggleBool(SHOW_FPS);
-    }
-    
-    ///
-    
-    public static boolean isFPSUnlocked() {
-        return getSettingsInst().getBool(IS_FPS_UNLOCKED);
-    }
-    
-    public static boolean isFPSUnlocked(boolean defaultValue) {
-        return getSettingsInst().getBool(IS_FPS_UNLOCKED, defaultValue);
-    }
-    
-    public static void setFPSUnlocked(boolean b) {
-    	getSettingsInst().set(IS_FPS_UNLOCKED, b);
-    }
-    
-    public static boolean toggleFPSUnlocked() {
-    	return getSettingsInst().toggleBool(IS_FPS_UNLOCKED);
     }
     
     ///
