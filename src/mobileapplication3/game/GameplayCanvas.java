@@ -7,14 +7,11 @@ package mobileapplication3.game;
 import at.emini.physics2D.Body;
 import at.emini.physics2D.Contact;
 import at.emini.physics2D.UserData;
-import at.emini.physics2D.World;
 import at.emini.physics2D.util.FXUtil;
 import at.emini.physics2D.util.FXVector;
-import at.emini.physics2D.util.PhysicsFileReader;
 import mobileapplication3.platform.Battery;
 import mobileapplication3.platform.Logger;
 import mobileapplication3.platform.Mathh;
-import mobileapplication3.platform.Platform;
 import mobileapplication3.platform.Sound;
 import mobileapplication3.platform.ui.Font;
 import mobileapplication3.platform.ui.Graphics;
@@ -107,8 +104,6 @@ public class GameplayCanvas extends Container implements Runnable {
     //private static final int lFontH = largefont.getHeight();
     private Font currentFont = largefont;
     private int currentFontH = currentFont.getHeight();
-    
-    private static final int TEN_FX = FXUtil.toFX(10);
     
     private GraphicsWorld world;
     private WorldGen worldgen;
@@ -477,7 +472,7 @@ public class GameplayCanvas extends Container implements Runnable {
 		// start the final countdown and open main menu if the car
 		// lies upside down or fell out of the world
 		int lowestY = getLowestSafeY();
-		feltUnderTheWorld = GraphicsWorld.carY > 2000 + lowestY;
+		feltUnderTheWorld = world.carY > 2000 + lowestY;
 		if (feltUnderTheWorld || (carAngle > 140 && carAngle < 220 && world.carbody.getContacts()[0] != null) || gameOver) {
 		    if (uninterestingDebug) {
 		        gameoverCountdown = 0;
@@ -733,7 +728,7 @@ public class GameplayCanvas extends Container implements Runnable {
         // show coordinates of car if enabled
         if (DebugMenu.coordinates) {
             g.setColor(127, 127, 127);
-            g.drawString(GraphicsWorld.carX + " " + GraphicsWorld.carY, 0, hudLeftTextOffset, 0); 
+            g.drawString(world.carX + " " + world.carY, 0, hudLeftTextOffset, 0); 
             hudLeftTextOffset += currentFontH;
         }
         

@@ -25,8 +25,6 @@ public class Levels extends GenericMenu implements Runnable {
     private String[] levelPaths = new String[0];
     private String[] buttons = new String[2];
     
-    private static int fontSizeCache = -1;
-    
     public static final String LEVELS_FOLDER_NAME = "Levels";
     
     public Levels() {
@@ -51,7 +49,7 @@ public class Levels extends GenericMenu implements Runnable {
 
     public void init() {
         isStopped = false;
-        fontSizeCache = getFontSize();
+        getFontSize();
         (new Thread(this, "levels")).start();
     }
     

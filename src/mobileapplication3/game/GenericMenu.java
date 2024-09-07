@@ -367,10 +367,6 @@ public abstract class GenericMenu extends Container {
         reloadCanvasParameters(x0, y0, scW, scH);
     }
     public void reloadCanvasParameters(int x0, int y0, int w, int h) {
-        int fontSize = -1;
-        if (w - x0 == this.w - this.x0 && h - y0 == this.h - this.y0 && font != null) {
-            fontSize = font.getSize();
-        }
         loadCanvasParams(x0, y0, w, h);
     }
     

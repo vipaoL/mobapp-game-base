@@ -52,10 +52,6 @@ public class WorldGen implements Runnable {
     int tick = 0;
     public static int mspt;
     
-    private final int SEGMENTS_IN_CIRCLE = 36;       // how many lines will draw up a circle
-    private final int CIRCLE_SEGMENT_LEN = 360 / SEGMENTS_IN_CIRCLE;
-    
-    
     private boolean paused = false;
     private boolean needSpeed = true;
     private int lock = 0;
@@ -64,7 +60,6 @@ public class WorldGen implements Runnable {
     private Random rand;
     private GraphicsWorld w;
     private Landscape lndscp;
-    private MgStruct mgStruct;
     private StructLog structlogger;
     private Thread wgThread = null;
     
@@ -89,7 +84,7 @@ public class WorldGen implements Runnable {
         Logger.log("wg:start()");
         rand = new Random();
         Logger.log("wg:loading mgstruct");
-        mgStruct = new MgStruct();
+        new MgStruct();
         reset();
         unlockGameThread("init");
         (new Thread(this, "wg")).start();
@@ -112,8 +107,8 @@ public class WorldGen implements Runnable {
         if (!paused || needSpeed) {
             w.refreshCarPos();
             
-            if ((GraphicsWorld.carX + GraphicsWorld.viewField*2 > lastX)) {
-                if ((GraphicsWorld.carX + GraphicsWorld.viewField > lastX)) {
+            if ((w.carX + w.viewField*2 > lastX)) {
+                if ((w.carX + w.viewField > lastX)) {
                     needSpeed = true;
                     if (!gameTrLockedByAdding) {
                         lockGameThread("addSt");
@@ -139,12 +134,12 @@ public class WorldGen implements Runnable {
                 * The larger the coordinates, the weirder the physics engine behaves.
                 * So we need to move all structures and bodies to the left from time to time.
                 */
-                if (GraphicsWorld.carX > 3000 && (GameplayCanvas.timeFlying > -1 || GameplayCanvas.uninterestingDebug)) {
+                if (w.carX > 3000 && (GameplayCanvas.timeFlying > -1 || GameplayCanvas.uninterestingDebug)) {
                     resetPosition();
                 }
 
                 w.refreshCarPos();
-                if (GraphicsWorld.carX > nextPointsCounterTargetX) {
+                if (w.carX > nextPointsCounterTargetX) {
                     nextPointsCounterTargetX += POINTS_DIVIDER;
                     GameplayCanvas.points++;
                 }
@@ -451,10 +446,6 @@ public class WorldGen implements Runnable {
             return structLog.length;
         }
         
-        public boolean isFull() {
-            return getNumberOfLogged() >= getSize();
-        }
-        
         public void rmFirstElement() {
             ringLogStart = (ringLogStart + 1) % structLog.length;
             numberOfLoggedStructs--;
@@ -509,7 +500,7 @@ public class WorldGen implements Runnable {
             }
             try {
                 if (getNumberOfLogged() > 0) {
-                    return GraphicsWorld.carX - getElementAt(0)[0] > maxDistToRemove;
+                    return w.carX - getElementAt(0)[0] > maxDistToRemove;
                 } else
                     return false;
             } catch(NullPointerException ex) {
@@ -529,7 +520,7 @@ public class WorldGen implements Runnable {
     }
     
     void placeMGStructByID(int id) {
-        short[][] data = mgStruct.structStorage[id];
+        short[][] data = MgStruct.structStorage[id];
         if (data.length < 1) {
             Logger.log("mgs" + id + " is broken: data.length=", data.length);
             return;

@@ -8,11 +8,9 @@ import java.util.Random;
 import java.util.Vector;
 
 import at.emini.physics2D.Body;
-import at.emini.physics2D.Constraint;
 import at.emini.physics2D.Joint;
 import at.emini.physics2D.Landscape;
 import at.emini.physics2D.Shape;
-import at.emini.physics2D.Spring;
 import at.emini.physics2D.UserData;
 import at.emini.physics2D.World;
 import at.emini.physics2D.util.FXUtil;
@@ -43,7 +41,6 @@ public class GraphicsWorld extends World {
     public static int scWidth = 200;
     private int halfScWidth = scWidth/2;
     public static int scHeight = 200;
-    private int halfScHeight = scHeight/2;
     private int scMinSide = Math.min(scWidth, scHeight);
     
     private boolean betterGraphics;
@@ -56,10 +53,10 @@ public class GraphicsWorld extends World {
     int zoomOut = 100;
     int offsetX = 0;
     int offsetY = 0;
-    public static int viewField;
+    public int viewField;
     
-    public static int carX = 0;
-    public static int carY = 0;
+    public int carX = 0;
+    public int carY = 0;
     public Body carbody;
     public Body leftwheel;
     public Body rightwheel;
@@ -209,7 +206,7 @@ public class GraphicsWorld extends World {
         }
         // removing all that fell out the world or got too left
         for (int i = 0; i < getBodyCount(); i++) {
-            if (GraphicsWorld.viewField < 100) {
+            if (viewField < 100) {
                 break; // Hack to not remove bodies until the correct screen size is set. Needs a proper fix
             }
             Body[] bodies = getBodies();
@@ -435,19 +432,19 @@ public class GraphicsWorld extends World {
         }
     }
 
-    private void drawConstraints(Graphics g) {
-        int constraintCount = getConstraintCount();
-        Constraint[] constraints = getConstraints();
-        for (int i = 0; i < constraintCount; i++) {
-            if (constraints[i] instanceof Spring) {
-                Spring spring = (Spring) constraints[i];
-                g.drawLine(xToPX(spring.getPoint1().xAsInt()),
-                        yToPX(spring.getPoint1().yAsInt()),
-                        xToPX(spring.getPoint2().xAsInt()),
-                        yToPX(spring.getPoint2().yAsInt()));
-            }
-        }
-    }
+//    private void drawConstraints(Graphics g) {
+//        int constraintCount = getConstraintCount();
+//        Constraint[] constraints = getConstraints();
+//        for (int i = 0; i < constraintCount; i++) {
+//            if (constraints[i] instanceof Spring) {
+//                Spring spring = (Spring) constraints[i];
+//                g.drawLine(xToPX(spring.getPoint1().xAsInt()),
+//                        yToPX(spring.getPoint1().yAsInt()),
+//                        xToPX(spring.getPoint2().xAsInt()),
+//                        yToPX(spring.getPoint2().yAsInt()));
+//            }
+//        }
+//    }
 
     private void drawWheel(Graphics g, Body b) {
         int radius = FXUtil.fromFX(b.shape().getBoundingRadiusFX());
@@ -549,7 +546,6 @@ public class GraphicsWorld extends World {
         scWidth = w;
         halfScWidth = scWidth / 2;
         scHeight = h;
-        halfScHeight = scHeight / 2;
         scMinSide = Math.min(scWidth, scHeight);
         bgLineStep = scMinSide / 3;
         zoomBase = 6000 * 240 / scMinSide;

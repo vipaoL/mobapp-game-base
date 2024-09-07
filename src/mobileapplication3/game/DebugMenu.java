@@ -27,7 +27,6 @@ public class DebugMenu extends GenericMenu implements Runnable {
     
     // array with states of all buttons (active/inactive/enabled)
     private final int[] statemap = new int[MENU_OPTS.length];
-    private static int fontSizeCache = -1;
     public static boolean isDebugEnabled = false;
     public static boolean closerWorldgen = false;
     public static boolean coordinates = false;
@@ -50,7 +49,7 @@ public class DebugMenu extends GenericMenu implements Runnable {
 	}
     
     public void init() {
-        fontSizeCache = getFontSize();
+        getFontSize();
         setSpecialOption(0);
         refreshStates();
         (new Thread(this, "debug menu")).start();
