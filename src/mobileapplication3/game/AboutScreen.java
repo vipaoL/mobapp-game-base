@@ -60,6 +60,7 @@ public class AboutScreen extends GenericMenu implements Runnable {
         scW = w;
         scH = h;
         qrSide = scH - fontH * (STRINGS.length + MENU_OPTS.length + 6);
+        qrSide = Math.max(66, qrSide);
         margin = fontH/2;
         if (qrSide > scW - margin*2) {
             qrSide = scW - margin*2;
