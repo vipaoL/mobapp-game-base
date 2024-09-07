@@ -566,7 +566,7 @@ public class GameplayCanvas extends Container implements Runnable {
         }
 	}
     
-    public boolean paintAsBG(Graphics g) {
+    public boolean drawAsBG(Graphics g) {
     	if (feltUnderTheWorld || world.currColBodies == 0 && world.currColBg == 0) {
     		return false;
     	}
@@ -575,6 +575,7 @@ public class GameplayCanvas extends Container implements Runnable {
     	world.refreshCarPos();
     	setSimulationArea();
     	world.tickCustomBodies();
+    	tickEffects();
     	world.tick();
     	tickCustomBodyInteractions(getCarContacts());
     	tickGameOverCheck();

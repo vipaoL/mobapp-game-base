@@ -93,7 +93,7 @@ public class MenuCanvas extends GenericMenu implements Runnable {
     public void paint(Graphics g) {
         try {
             if (bg != null) {
-            	if (!bg.paintAsBG(g)) {
+            	if (!bg.drawAsBG(g)) {
             		bg = null;
             	}
             }
