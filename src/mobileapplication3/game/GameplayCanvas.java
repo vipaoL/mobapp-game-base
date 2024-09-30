@@ -58,13 +58,9 @@ public class GameplayCanvas extends Container implements Runnable {
     
     // screen
     private int scW, scH;
-    private int maxScSide = Math.max(scW, scH);
-    
-    // car
-    private boolean leftWheelContacts = false;
-    private boolean rightWheelContacts = false;
-    private boolean carBodyContacts = false;
-    private int carVelocitySqr, speedMultipiler;
+    private int maxScSide;
+
+    private int carVelocitySqr;
     private int carAngle = 0;
     // motor state
     private boolean accel = false;
@@ -74,7 +70,6 @@ public class GameplayCanvas extends Container implements Runnable {
     private int loadingProgress = 0;
     private int speedoState = 0;
     private int tickTime;
-    private int prevTickTime;
     private int fps;
     private int tps;
     private String statusMessage = null;
@@ -157,7 +152,7 @@ public class GameplayCanvas extends Container implements Runnable {
         setLoadingProgress(25);
         
         log("creating world");
-        // there's siemens c65 stucks if obfucsation is enabled
+        // there siemens c65 stucks if obfuscation is enabled
         world = new GraphicsWorld();
 
         setLoadingProgress(30);
@@ -177,7 +172,7 @@ public class GameplayCanvas extends Container implements Runnable {
 
             boolean wasPaused = true;
             tickTime = TICK_DURATION;
-            prevTickTime = TICK_DURATION;
+            int prevTickTime = TICK_DURATION;
 
 			try {
             	log("reading settings");
@@ -240,8 +235,7 @@ public class GameplayCanvas extends Container implements Runnable {
 	                		tps = ticksFromLastTPSMeasure * 1000 / dtFromLastFPSMeasure;
 	                		ticksFromLastTPSMeasure = 0;
 	                	}
-	
-	                	prevTickTime = tickTime;
+
 	                    if (!wasPaused) {
 	                        tickTime = (int) (System.currentTimeMillis() - start);
 	                        if (unlimitFPS) {
@@ -250,6 +244,8 @@ public class GameplayCanvas extends Container implements Runnable {
 	                    } else {
 	                        wasPaused = false;
 	                    }
+
+						prevTickTime = tickTime;
 	
 	                    start = System.currentTimeMillis();
 	                    boolean bigTick = false;
@@ -269,9 +265,10 @@ public class GameplayCanvas extends Container implements Runnable {
 	
 	                    // check if car contacts with the ground or with something else
 	                    Contact[][] carContacts = getCarContacts();
-	                    leftWheelContacts = carContacts[0][0] != null;
-	                    rightWheelContacts = carContacts[1][0] != null;
-	                    carBodyContacts = carContacts[2][0] != null;
+                        // car
+                        boolean leftWheelContacts = carContacts[0][0] != null;
+                        boolean rightWheelContacts = carContacts[1][0] != null;
+                        boolean carBodyContacts = carContacts[2][0] != null;
 	                    
 	                    tickCustomBodyInteractions(carContacts);
 	                    
@@ -314,11 +311,9 @@ public class GameplayCanvas extends Container implements Runnable {
 	                        	if (bigTickN == 1) {
 	                        		world.tickCustomBodies();
 	                        	}
-	                        	
-	                        	if (bigTick) {
-	                        		bigTickN++;
-	                        	}
-	                        } else {
+
+                                bigTickN++;
+                            } else {
 	                            bigTickN = 0;
 	                            tickGameOverCheck();
 	                            if (System.currentTimeMillis() - lastBattUpdateTime > BATT_UPD_PERIOD) {
@@ -348,8 +343,9 @@ public class GameplayCanvas extends Container implements Runnable {
 	                                    vY = vY * 100 / currentEffects[EFFECT_SPEED][2];
 	                                }
 	                            }
-	                            
-	                            if (uninterestingDebug) {
+
+                                int speedMultipiler;
+                                if (uninterestingDebug) {
 	                                speedMultipiler = 250000;
 	                            } else {
 		                            carVelocitySqr = (vX * vX + vY * vY) / 4;
@@ -376,8 +372,7 @@ public class GameplayCanvas extends Container implements Runnable {
 	                            int motorForceX = Mathh.cos(carAngle - 15 + directionOffset) * speedMultipiler / 50;
 	                            int motorForceY = Mathh.sin(carAngle - 15 + directionOffset) * speedMultipiler / -50;
 	                            world.carbody.applyMomentum(new FXVector(convertByTimestep(motorForceX), convertByTimestep(motorForceY)));
-	
-	                            boolean carBodyContacts = world.getContactsForBody(world.carbody)[0] != null;
+
 	                            if ((!leftWheelContacts && carBodyContacts) || rightWheelContacts) {
 	                                int torque;
 	                                if (rightWheelContacts) {
@@ -614,7 +609,7 @@ public class GameplayCanvas extends Container implements Runnable {
 		        paint(g);
 		        flushGraphics();
 		        framesFromLastFPSMeasure++;
-	        } catch (Exception ex) { }
+	        } catch (Exception ignored) { }
     	}
     }
 
