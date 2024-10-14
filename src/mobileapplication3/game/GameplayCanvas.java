@@ -1016,34 +1016,32 @@ public class GameplayCanvas extends Container implements Runnable {
     }
     
     public boolean keyPressed(int keyCode, int count) {
+		if (gameOver) {
+			return false;
+		}
+
         int gameAction = RootContainer.getGameActionn(keyCode);
         // menu
-        if (keyCode == Keys.KEY_POUND | gameAction == Keys.GAME_D) {
+        if (keyCode == Keys.KEY_POUND || gameAction == Keys.GAME_D) {
             stop(true, false);
-        } else { // pause
-        	if (gameOver) {
-        		return false;
-        	}
-	        if (keyCode == Keys.KEY_SOFT_RIGHT/* | keyCode == GenericMenu.SIEMENS_KEYCODE_RIGHT_SOFT*/) {
-	            pauseButtonPressed();
-	        } else  // also pause. i'll rework it later
-	        if ((keyCode == Keys.KEY_STAR | gameAction == Keys.GAME_B)) {
-	            pauseButtonPressed();
-	            // no cheats. only pause
-	            /*if (DebugMenu.isDebugEnabled && DebugMenu.cheat) {
-	                FXVector pos = w.carbody.positionFX();
-	                int carX = pos.xAsInt();
-	                int carY = pos.yAsInt();
-	                worldgen.line(carX - 200, carY + 200, carX + 2000, carY + 0);
-	            }*/
-	        } else
-	        if (keyCode == Keys.KEY_NUM6) {
-	        	world.destroyCar();
-	        } else {
-	            // if not an action button, turn on the motor
-	            accel = true;
-	        }
-        }
+        } else if (keyCode == Keys.KEY_SOFT_RIGHT/* || keyCode == GenericMenu.SIEMENS_KEYCODE_RIGHT_SOFT*/) {
+			pauseButtonPressed();
+		} else if (keyCode == Keys.KEY_STAR || gameAction == Keys.GAME_B) {
+			pauseButtonPressed();
+			// no cheats. only pause
+			/*if (DebugMenu.isDebugEnabled && DebugMenu.cheat) {
+				FXVector pos = w.carbody.positionFX();
+				int carX = pos.xAsInt();
+				int carY = pos.yAsInt();
+				worldgen.line(carX - 200, carY + 200, carX + 2000, carY + 0);
+			}*/
+		} else if (keyCode == Keys.KEY_NUM6) {
+			world.destroyCar();
+		} else {
+			// if not an action button, turn on the motor
+			accel = true;
+		}
+
         return true;
     }
     
