@@ -26,7 +26,7 @@ import utils.MobappGameSettings;
  */
 public class GameplayCanvas extends Container implements Runnable {
     public static final int TICK_DURATION = 50;
-    private static final String[] MENU_HINT = {"MENU:", "here(touch),", "D, #"};
+	private static final String[] MENU_HINT = {"MENU:", "here(touch), #", "D, left soft"};
     private static final String[] PAUSE_HINT = {"PAUSE:", "here(touch), *,", "B, right soft"};
     public static final short EFFECT_SPEED = 0;
     private static final int BATT_UPD_PERIOD = 10000;
@@ -1022,7 +1022,7 @@ public class GameplayCanvas extends Container implements Runnable {
 
         int gameAction = RootContainer.getGameActionn(keyCode);
         // menu
-        if (keyCode == Keys.KEY_POUND || gameAction == Keys.GAME_D) {
+        if (keyCode == Keys.KEY_SOFT_LEFT || keyCode == Keys.KEY_POUND || gameAction == Keys.GAME_D) {
             stop(true, false);
         } else if (keyCode == Keys.KEY_SOFT_RIGHT/* || keyCode == GenericMenu.SIEMENS_KEYCODE_RIGHT_SOFT*/) {
 			pauseButtonPressed();
