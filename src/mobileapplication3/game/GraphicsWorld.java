@@ -48,6 +48,7 @@ public class GraphicsWorld extends World {
     public static boolean bgOverride = false;
     private int bgLineStep = scMinSide / 3;
     private int bgLineThickness;
+    public int bgXOffset = 0;
     
     int zoomBase = 0;
     int zoomOut = 100;
@@ -68,6 +69,8 @@ public class GraphicsWorld extends World {
     Vector waitingForDynamic = new Vector();
     Vector waitingTime = new Vector();
     long prevBodyTickTime = System.currentTimeMillis();
+    public int barrierX = Integer.MIN_VALUE;
+    public int lowestY;
 
     public GraphicsWorld() {
         init();
@@ -171,7 +174,7 @@ public class GraphicsWorld extends World {
         addConstraint(leftjoint);
         addConstraint(rightjoint);
         
-        WorldGen.bgZeroPoint = spawnX;
+        bgXOffset = spawnX;
     }
     
     public void destroyCar() {
@@ -211,7 +214,7 @@ public class GraphicsWorld extends World {
             }
             Body[] bodies = getBodies();
             Body body = bodies[i];
-            if (body.positionFX().xAsInt() < WorldGen.barrierX || body.positionFX().yAsInt() > WorldGen.getLowestY() + 2000) {
+            if (body.positionFX().xAsInt() < barrierX || body.positionFX().yAsInt() > lowestY + 2000) {
                 if (body != carbody && body != leftwheel && body != rightwheel) {
                     removeBody(body);
                 }
@@ -266,7 +269,7 @@ public class GraphicsWorld extends World {
             int sunCenterY = scHeight - scHeight * 3 / 5;
             
             g.setColor(191, 0, 127);
-            int offset = (carX - WorldGen.bgZeroPoint) / 16;
+            int offset = (carX - bgXOffset) / 16;
             int l = (scWidth * 4);
             int y1 = sunCenterY + sunR;
             int y2 = scHeight;
@@ -590,5 +593,9 @@ public class GraphicsWorld extends World {
         offsetY = -carY * 1000 / zoomOut + scHeight * 2 / 3;
         offsetY += carY / 20;
         offsetY = Mathh.constrain(-carY * 1000 / zoomOut + scHeight/16, offsetY, -carY * 1000 / zoomOut + scHeight*4/5);
+    }
+
+    public void moveBg(int dx) {
+        bgXOffset = bgXOffset + dx;
     }
 }

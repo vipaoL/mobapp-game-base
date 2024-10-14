@@ -11,8 +11,6 @@ import java.util.Random;
 import at.emini.physics2D.Body;
 import at.emini.physics2D.Constraint;
 import at.emini.physics2D.Landscape;
-import at.emini.physics2D.Shape;
-import at.emini.physics2D.UserData;
 import at.emini.physics2D.util.FXUtil;
 import at.emini.physics2D.util.FXVector;
 import mobileapplication3.platform.Logger;
@@ -25,13 +23,6 @@ import utils.MgStruct;
  */
 public class WorldGen implements Runnable {
 
-    public static final int LINE = 2;
-    public static final int CIRCLE = 3;
-    public static final int BROKEN_LINE = 4;
-    public static final int BROKEN_CIRCLE = 5;
-    public static final int SIN = 6;
-    public static final int ACCELERATOR = 7;
-
     public static boolean isEnabled = false;
     
     int stdStructsNumber = 6;
@@ -43,10 +34,6 @@ public class WorldGen implements Runnable {
     
     private int lastX;
     private int lastY;
-    private static int lowestY;
-    
-    public static int barrierX = Short.MIN_VALUE;
-    public static int bgZeroPoint = 0;
     private final int POINTS_DIVIDER = 2000;
     private int nextPointsCounterTargetX;
     int tick = 0;
@@ -54,17 +41,14 @@ public class WorldGen implements Runnable {
     
     private boolean paused = false;
     private boolean needSpeed = true;
-    private int lock = 0;
+    private int lock;
     private boolean gameTrLockedByAdding = false;
     
-    private Random rand;
-    private GraphicsWorld w;
-    private Landscape lndscp;
-    private StructLog structlogger;
+    private final Random rand;
+    private final GraphicsWorld w;
+    private final Landscape landscape;
+    private StructLog structLogger;
     private Thread wgThread = null;
-    
-    // counter
-    private int linesInStructure = 0;
     
     // wg activity indicator
     public static int currStep;
@@ -76,18 +60,19 @@ public class WorldGen implements Runnable {
     
     public WorldGen(GraphicsWorld w) {
         lock = 0;
-        lowestY = 2000;
+        w.lowestY = 2000;
         Logger.log("wg:starting");
         lockGameThread("init");
         this.w = w;
-        lndscp = w.getLandscape();
+        landscape = w.getLandscape();
         Logger.log("wg:start()");
         rand = new Random();
         Logger.log("wg:loading mgstruct");
         new MgStruct();
         reset();
         unlockGameThread("init");
-        (new Thread(this, "wg")).start();
+        wgThread = new Thread(this, "wg");
+        wgThread.start();
     }
     
     public void run() {
@@ -96,7 +81,7 @@ public class WorldGen implements Runnable {
             try {
                 tick();
             } catch (NullPointerException ex) {
-                ex.printStackTrace();
+                Logger.log(ex);
             }
         }
         Logger.log("wg stopped.");
@@ -123,7 +108,7 @@ public class WorldGen implements Runnable {
                     gameTrLockedByAdding = false;
                     unlockGameThread("addSt");
                 }
-                if (!structlogger.shouldRmFirstStruct()) {
+                if (!structLogger.shouldRmFirstStruct()) {
                     needSpeed = false;
                 }
             }
@@ -146,7 +131,7 @@ public class WorldGen implements Runnable {
             }
 
             currStep = STEP_CLEAN_SGS;
-            structlogger.rmFarStructures();
+            structLogger.rmFarStructures();
         }
         currStep = STEP_IDLE;
         tick++;
@@ -158,9 +143,7 @@ public class WorldGen implements Runnable {
             if (!needSpeed) {
                 Thread.sleep(20);
             }
-        } catch (InterruptedException ex) {
-            ex.printStackTrace();
-        }
+        } catch (InterruptedException ignored) { }
         mspt = (int) (System.currentTimeMillis() - startTime);
     }
     
@@ -180,51 +163,57 @@ public class WorldGen implements Runnable {
         if (DebugMenu.mgstructOnly) {
             nextStructRandomId+=stdStructsNumber + floorWeightInRandom;
         }
-        
+
+        int[] structData;
         if (lastY > 1000 | lastY < -1000) { // will correct height if it is too high or too low
             Logger.log("correcting height. lastY=", lastY);
-            floor(lastX, lastY, 1000 + rand.nextInt(4) * 100, (rand.nextInt(7) - 3) * 100);
+            structData = StructurePlacer.floor(w, isResettingPosition, lastX, lastY, 1000 + rand.nextInt(4) * 100, (rand.nextInt(7) - 3) * 100);
         } else {
             Logger.log("+id", nextStructRandomId);
             /*
-            * 0 - circ1, 1 - sin, 2 - floorStat, 3 - circ2, 4 - abyss,
-            * 5 - dotline, 6..9 - floor, 10 - mgstruct0, 11 - mgstruct1,
+            * 0 - arc1, 1 - sin, 2 - floorStat, 3 - arc2, 4 - abyss,
+            * 5 - slantedDottedLine, 6..9 - floor, 10 - mgstruct0, 11 - mgstruct1,
             * ...
             */
             switch(nextStructRandomId) {
                 case 0:
-                    circ1(lastX, lastY, 200 + Math.abs(rand.nextInt()) % 400, 15, 120);
+                    structData = StructurePlacer.arc1(w, isResettingPosition, lastX, lastY, 200 + Math.abs(rand.nextInt()) % 400, 120);
                     break;
                 case 1:
-                    int l = 720 + rand.nextInt(8) * 180;
+                    int halfPeriods = 4 + rand.nextInt(8);
+                    int l = halfPeriods * 180;
                     int amp = 15;
-                    sinStruct(lastX, lastY, l, l / 180, 0, amp);
+                    structData = StructurePlacer.sinStruct(w, isResettingPosition, lastX, lastY, l, halfPeriods, 0, amp);
                     break;
                 case 2:
-                    floorStat(lastX, lastY, 400 + rand.nextInt(10) * 100);
+                    structData = StructurePlacer.floorStat(w, isResettingPosition, lastX, lastY, 400 + rand.nextInt(10) * 100);
                     break;
                 case 3:
-                    circ2(lastX, lastY, 500 + Math.abs(rand.nextInt()) % 500, 20);
+                    structData = StructurePlacer.arc2(w, isResettingPosition, lastX, lastY, 500 + Math.abs(rand.nextInt()) % 500, 20);
                     break;
                 case 4:
-                    abyss(lastX, lastY, rand.nextInt(6) * 1000);
+                    structData = StructurePlacer.abyss(w, isResettingPosition, lastX, lastY, rand.nextInt(6) * 1000);
                     break;
                 case 5:
                     int n = rand.nextInt(6) + 5;
-                    dotline(lastX, lastY, n);
+                    structData = StructurePlacer.slantedDottedLine(w, isResettingPosition, lastX, lastY, n);
                     break;
                 default:
                     if (Mathh.strictIneq(stdStructsNumber - 1,/*<*/ nextStructRandomId,/*<*/ stdStructsNumber + floorWeightInRandom)) {
-                        floor(lastX, lastY, 400 + rand.nextInt(10) * 100, (rand.nextInt(7) - 3) * 100);
+                        structData = StructurePlacer.floor(w, isResettingPosition, lastX, lastY, 400 + rand.nextInt(10) * 100, (rand.nextInt(7) - 3) * 100);
                     } else {
-                        placeMGStructByRelativeID(nextStructRandomId);
+                        structData = placeMGStructByRelativeID(nextStructRandomId);
                     }
                     break;
             }
         }
+        lastX = structData[0];
+        lastY = structData[1];
+        structLogger.add(lastX, structData[2]);
+
         Logger.log("lastX=", lastX);
-        lowestY = Math.max(lastY, lowestY);
-        Logger.log("lowestY=", lowestY);
+        w.lowestY = Math.max(lastY, w.lowestY);
+        Logger.log("lowestY=", w.lowestY);
     }
     
     public void pause() {
@@ -241,13 +230,13 @@ public class WorldGen implements Runnable {
     public void stop() {
     	Logger.log("stopping wg thread...");
     	isEnabled = false;
-    	boolean successed = wgThread == null;
-        while (!successed) {
+    	boolean succeed = wgThread == null;
+        while (!succeed) {
             try {
                 wgThread.join();
-                successed = true;
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+                succeed = true;
+            } catch (InterruptedException ex) {
+                Logger.log(ex);
             }
         }
         Logger.log("wg: stopped");
@@ -264,15 +253,14 @@ public class WorldGen implements Runnable {
         try {
             Logger.log("wg:cleaning world");
             cleanWorld();
-        } catch (NullPointerException e) {
-            
-        }
+        } catch (NullPointerException ignored) { }
         
-        structlogger = new StructLog(10);
+        structLogger = new StructLog(10);
         
         // start platform
-        line(lastX - 600, lastY - 100, lastX, lastY);
-        structlogger.add(lastX, linesInStructure);
+        ElementPlacer elementPlacer = new ElementPlacer(w, isResettingPosition);
+        elementPlacer.line(lastX - 600, lastY - 100, lastX, lastY);
+        structLogger.add(lastX, elementPlacer.getLineCount());
     }
     private void cleanWorld() {
         lockGameThread("clnW");
@@ -281,12 +269,12 @@ public class WorldGen implements Runnable {
             w.removeConstraint(constraints[0]);
         }
         rmAllBodies();
-        rmSegs();
+        rmLandscapeSegments();
         unlockGameThread("clnW");
     }
-    private void rmSegs() {
-        while (lndscp.segmentCount() > 0) {
-            lndscp.removeSegment(0);
+    private void rmLandscapeSegments() {
+        while (landscape.segmentCount() > 0) {
+            landscape.removeSegment(0);
         }
     }
     
@@ -298,9 +286,10 @@ public class WorldGen implements Runnable {
         if (GameplayCanvas.isBusy) {
             while (!GameplayCanvas.isWaiting && GameplayCanvas.isBusy) {
                 try {
+                    Thread.yield();
                     Thread.sleep(0);
                 } catch (InterruptedException ex) {
-                    ex.printStackTrace();
+                    Logger.log(ex);
                 }
             }
         }
@@ -317,26 +306,16 @@ public class WorldGen implements Runnable {
         }
     }
     
-    /*private void rmBodies() {
-        Body[] bodies = w.getBodies();
-        int to = w.getBodyCount();
-        for (int i = to - 1; i >= 0; i--) {
-            if (bodies[i] != w.carbody & bodies[i] != w.leftwheel & bodies[i] != w.rightwheel)
-            w.removeBody(bodies[i]);
-        }
-    }*/
     private void rmAllBodies() {
         Body[] bodies = w.getBodies();
         while (w.getBodyCount() > 0) {
             w.removeBody(bodies[0]);
         }
     }
-    public static int getLowestY() {
-        return lowestY;
-    }
+
     public int getSegmentCount() {
         try {
-            return lndscp.segmentCount();
+            return landscape.segmentCount();
         } catch(NullPointerException ex) {
             return 0;
         }
@@ -353,9 +332,9 @@ public class WorldGen implements Runnable {
         
         moveLandscape(dx);
         moveBodies(dx);
-        structlogger.moveXAllElements(dx);
-        barrierX += dx;
-        bgZeroPoint += dx;
+        structLogger.moveXAllElements(dx);
+        w.barrierX += dx;
+        w.moveBg(dx);
         
         nextPointsCounterTargetX += dx;
 
@@ -364,18 +343,18 @@ public class WorldGen implements Runnable {
     }
     
     private void moveLandscape(int dx) {
-        movePoints(lndscp.elementStartPoints(), dx);
-        movePoints(lndscp.elementEndPoints(), dx);
+        movePoints(landscape.elementStartPoints(), dx);
+        movePoints(landscape.elementEndPoints(), dx);
     }
     
     private void movePoints(FXVector[] points, int dx) {
         try {
-            for (int i = 0; i < lndscp.segmentCount(); i++) {
+            for (int i = 0; i < landscape.segmentCount(); i++) {
                 FXVector point = points[i];
                 points[i] = new FXVector(point.xFX + FXUtil.toFX(dx), point.yFX);
             }
-        } catch(NullPointerException e) {
-            e.printStackTrace();
+        } catch(NullPointerException ex) {
+            Logger.log(ex);
         }
     }
     
@@ -385,10 +364,25 @@ public class WorldGen implements Runnable {
             bodies[i].translate(FXVector.newVector(dx, 0), 0);
         }
     }
+
+    private int[] placeMGStructByRelativeID(int relID) {
+        int id = relID - floorWeightInRandom - stdStructsNumber;
+        return placeMGStructByID(id);
+    }
+
+    private int[] placeMGStructByID(int id) {
+        short[][] data = MgStruct.structStorage[id];
+        if (data.length < 1) {
+            Logger.log("mgs" + id + " is broken: data.length=", data.length);
+            return null;
+        }
+        Logger.log("+mgs", id);
+        return StructurePlacer.place(w, isResettingPosition, data, lastX, lastY);
+    }
     
     private class StructLog {
         public static final int MAX_DIST_TO_RM_STRUCT = 4000;
-        public static final int MAX_DIST_TO_RM_STRUCT_SIMUL = 300;
+        public static final int MAX_DIST_TO_RM_STRUCT_FOR_SIMULATION = 300;
         private short[][] structLog;
         private int numberOfLoggedStructs = 0;
         private int ringLogStart = 0;
@@ -398,9 +392,8 @@ public class WorldGen implements Runnable {
             structLog = new short[structLogSize][];
         }
         
-        public void add(int endX, int segsNumber) {
-            //Logger.log("strL:add "+endX+" "+segsNumber);
-            linesInStructure = 0;
+        public void add(int endX, int segmentCount) {
+            //Logger.log("strL:add "+endX+" "+segmentCount);
             
             if (numberOfLoggedStructs >= structLog.length) {
                 int ns = structLog.length+1;
@@ -408,7 +401,7 @@ public class WorldGen implements Runnable {
                 increase(ns);
             }
             
-            short[] a = {(short) endX, (short) segsNumber};
+            short[] a = {(short) endX, (short) segmentCount};
             int nextID = (ringLogStart + numberOfLoggedStructs) % structLog.length;
             Logger.log("logging struct to " + nextID);
             structLog[nextID] = a;
@@ -422,9 +415,9 @@ public class WorldGen implements Runnable {
             }
             short[][] tmp = structLog;
             structLog = new short[newSize][];
-            // copying from start of ringlog to end of array
+            // copying from start of ring log to end of array
             System.arraycopy(tmp, ringLogStart, structLog, 0, tmp.length - ringLogStart);
-            // copying from start of array to tail of ringlog
+            // copying from start of array to tail of ring log
             System.arraycopy(tmp, 0, structLog, tmp.length - ringLogStart, ringLogStart);
             ringLogStart = 0;
         }
@@ -462,20 +455,20 @@ public class WorldGen implements Runnable {
                 
                 // add a barrier to the left world border
                 if (!isLeftBarrierAdded) {
-                    barrierX = structLog[getElementID(0)][0];
-                    Logger.log("+barrier at " + barrierX);
-                    lndscp.addSegment(FXVector.newVector(barrierX, -10000), FXVector.newVector(barrierX, 10000), (short) 1);
+                    w.barrierX = structLog[getElementID(0)][0];
+                    Logger.log("+barrier at " + w.barrierX);
+                    landscape.addSegment(FXVector.newVector(w.barrierX, -10000), FXVector.newVector(w.barrierX, 10000), (short) 1);
                     structLog[getElementID(1)][1] += 1;
                     isLeftBarrierAdded = true;
                 }
                 
-                int deletedSegs = 0;
+                int deletedSegments = 0;
                 for (int i = 0; i < Math.min(getElementAt(0)[1], 3); i++) {
-                    lndscp.removeSegment(0);
-                    deletedSegs++;
+                    landscape.removeSegment(0);
+                    deletedSegments++;
                 }
                 int id = getElementID(0);
-                structLog[id][1] = (short) (structLog[id][1] - ((short) deletedSegs));
+                structLog[id][1] = (short) (structLog[id][1] - ((short) deletedSegments));
 
                 // if 0 segments left, then the structure was deleted completely.
                 // Deleting it from log
@@ -485,9 +478,9 @@ public class WorldGen implements Runnable {
                     
                     /* broken code, unused
                     // check if there are a concatenated line partially behind the barrier
-                    FXVector prevLineStartPoint = lndscp.elementStartPoints()[0];
+                    FXVector prevLineStartPoint = landscape.elementStartPoints()[0];
                     if (prevLineStartPoint.xAsInt() < barrierX) {
-                        lndscp.elementStartPoints()[0] = FXVector.newVector(barrierX, prevLineStartPoint.yAsInt());
+                        landscape.elementStartPoints()[0] = FXVector.newVector(barrierX, prevLineStartPoint.yAsInt());
                     }*/
                 }
             }
@@ -496,7 +489,7 @@ public class WorldGen implements Runnable {
         public boolean shouldRmFirstStruct() {
             int maxDistToRemove = MAX_DIST_TO_RM_STRUCT;
             if (DebugMenu.simulationMode) {
-                maxDistToRemove = MAX_DIST_TO_RM_STRUCT_SIMUL;
+                maxDistToRemove = MAX_DIST_TO_RM_STRUCT_FOR_SIMULATION;
             }
             try {
                 if (getNumberOfLogged() > 0) {
@@ -505,332 +498,10 @@ public class WorldGen implements Runnable {
                     return false;
             } catch(NullPointerException ex) {
                 Logger.enableOnScreenLog(GraphicsWorld.scHeight);
-                Logger.log(ex.toString());
+                Logger.log(ex);
                 Logger.log("structLog:critical err");
-                ex.printStackTrace();
                 return false;
             }
         }
     }
-    
-    
-    void placeMGStructByRelativeID(int relID) {
-        int id = relID - floorWeightInRandom - stdStructsNumber;
-        placeMGStructByID(id);
-    }
-    
-    void placeMGStructByID(int id) {
-        short[][] data = MgStruct.structStorage[id];
-        if (data.length < 1) {
-            Logger.log("mgs" + id + " is broken: data.length=", data.length);
-            return;
-        }
-        Logger.log("+mgs", id);
-        for (int i = 1; i < data.length; i++) {
-            placePrimitive(data[i]);
-        }
-        lastX+=data[0][1];
-        lastY+=data[0][2];
-        structlogger.add(lastX, linesInStructure);
-    }
-    
-    void placePrimitive(short[] data) {
-        short id = data[0];
-        if (id == LINE) {
-            line(data[1] + lastX, data[2] + lastY, data[3] + lastX, data[4] + lastY);
-        } else if (id == CIRCLE) {
-            arc(data[1]+lastX, data[2]+lastY, data[3], data[4], data[5], data[6] / 10, data[7] / 10);
-        } else if (id == BROKEN_LINE && !isResettingPosition) {
-            int x1 = data[1];
-            int y1 = data[2];
-            int x2 = data[3];
-            int y2 = data[4];
-            int dx = x2 - x1;
-            int dy = y2 - y1;
-            int platfH = data[5];
-            int platfL = data[6];
-            int spacing = data[7];
-            int l = data[8];
-            int ang = data[9];
-            int n = (l + spacing) / (platfL+spacing);
-            
-            Shape rect = Shape.createRectangle(platfL, platfH);
-            rect.setMass(1);
-            rect.setFriction(10);
-            rect.setElasticity(0);
-            dx/=(l/platfL);
-            int spX = spacing * dx / l; // TODO fix this mess (the editor should be fixed too, it will be a new mgstruct format version)
-            dy/=(l/platfL);
-            int spY = spacing * dy / l;
-            int offsetX = platfL/2 * Mathh.cos(ang) / 1000;
-            int offsetY = platfL/2 * Mathh.sin(ang) / 1000;
-            
-            for (int i = 0; i < n; i++) {
-                Body fallinPlatf = new Body(lastX + x1 + i*(dx+spX) + offsetX, lastY + y1 + i*(dy+spY) + offsetY, rect, false);
-                fallinPlatf.setRotation2FX(FXUtil.TWO_PI_2FX / 360 * ang);
-                fallinPlatf.setUserData(new MUserData(MUserData.TYPE_FALLING_PLATFORM, new short[] {20}));
-                w.addBody(fallinPlatf);
-            }
-            
-        } else if (id == BROKEN_CIRCLE) {
-            // not implemented yet
-            arc(data[1]+lastX, data[2]+lastY, data[3], 360, 0);
-        } else if (id == SIN) {
-            sin(lastX + data[1], lastY + data[2], data[3], data[4], data[5], data[6]);
-        } else if (id == ACCELERATOR) {
-            int x = lastX + data[1];
-            int y = lastY + data[2];
-            int l = data[3];
-            int h = data[4];
-            int ang = data[5];
-            
-            short effectID = GameplayCanvas.EFFECT_SPEED;
-            short effectDuration = data[8];
-            short directionOffset = data[6];
-            short speedMultipiler = data[7];
-            
-            int centerX = x + l * Mathh.cos(ang) / 2000;
-            int centerY = y + l * Mathh.sin(ang) / 2000;
-            
-            int colorModifier = (speedMultipiler - 100) * 3;
-            int red = Math.min(255, Math.max(0, colorModifier));
-            int blue = Math.min(255, Math.max(0, -colorModifier));
-            int green = blue;
-            if (red < 50 && blue < 50) {
-                red = 50;
-                blue = 50;
-            }
-
-            int color = ((red & 0xff) << 16) | ((green & 0xff) << 8) | (blue & 0xff);
-            
-            Shape plate = Shape.createRectangle(l, h);
-            Body pressurePlate = new Body(centerX, centerY, plate, false);
-            UserData mUserData = new MUserData(MUserData.TYPE_ACCELERATOR, new short[] {effectID, effectDuration, directionOffset, speedMultipiler});
-            ((MUserData) mUserData).color = color;
-            pressurePlate.setUserData(mUserData);
-            //Main.log(((MUserData) pressurePlate.getUserData()).bodyType);
-            pressurePlate.setRotation2FX(FXUtil.TWO_PI_2FX / 360 * ang);
-            w.addBody(pressurePlate);
-        }
-    }
-    
-        
-    /*******************************************
-     * 
-     * 
-     * 
-     * STRUCTURES AND PRIMITIVES               *
-     * 
-     *******************************************/
-
-    
-    
-    
-    private void circ1(int x, int y, int r, int sn, int va) { // 0
-        x+=r;
-        int r2 = r*3/2;
-        
-        arc(x-r, y-r2, r2, 60, 30);
-        arc(x+r/2, y-r*2, r, 300, va);
-        int ofs = (1000 - Mathh.cos(30))*2*r2/1000;
-        arc(x+r*2-ofs, y-r2, r2, 60, 90);
-        
-        int l = r2+r2-ofs;
-        lastX += l;
-        structlogger.add(lastX, linesInStructure);
-    }
-    
-    private void circ2(int x, int y, int r, int sn) { // 4
-        int sl = 360 / sn;
-        
-        int f0off = 30;
-        int va = 60 + f0off;
-        int ang = 360 - va;
-        
-        int offset = va + 90 - f0off;
-        arc(x+r, y-r, r, ang, offset);
-
-        int r2 = r/10*8;
-        line(x, y, x+r-r2, y);
-        arc(x+r, y, r2, 90, 90, 10, 5);
-        line(x+r, y+r2/2, x+2*r, y+r2/2);
-        lastY += r2/2;
-        
-        if (!isResettingPosition) {
-            int l2 = (r2) / 2 - r*(1000 - Mathh.cos(f0off)) / 2000;
-
-            l2 += 10; // hack. I don't understand this code anymore. This method should be rewritten entirely
-
-            int platfLength = 2*sl*r*3141/1000/360;
-            int platfHeight = r/100;
-
-            Shape rect = Shape.createRectangle(platfLength, platfHeight);
-            rect.setMass(1);
-            rect.setFriction(0);
-            rect.setElasticity(50);
-
-            for (int i = f0off+sl/2; i < 60; i+=sl) {
-                Body fallinPlatf = new Body(x+r+Mathh.cos(i+f0off)*(r+platfHeight/2)/1000, y-r+Mathh.sin(i+f0off)*(r+platfHeight/2)/1000, rect, true);
-                fallinPlatf.setDynamic(false);
-                fallinPlatf.setUserData(new MUserData(MUserData.TYPE_FALLING_PLATFORM, new short[] {20}));
-                fallinPlatf.setRotationDeg(i+f0off-90);
-                w.addBody(fallinPlatf);
-            }
-            rect = Shape.createRectangle(l2, platfHeight);
-            rect.setMass(1);
-            rect.setFriction(10);
-            rect.setElasticity(0);
-            for (int i = 0; i < 2; i++) {
-                Body fallinPlatf = new Body(x+r-r2+i*l2+l2/2, y+platfHeight/2, rect, true);
-                fallinPlatf.setDynamic(false);
-                fallinPlatf.setUserData(new MUserData(MUserData.TYPE_FALLING_PLATFORM, new short[] {20}));
-                w.addBody(fallinPlatf);
-            }
-        }
-        
-        int l = r+r;
-        lastX += l;
-        structlogger.add(lastX, linesInStructure);
-    }
-    
-    private void floor(int x, int y, int l, int y2) {
-        int amp = (y2 - y) / 2;
-        sinStruct(x, y + amp, l, 1, 270, amp);
-    }
-    private void sinStruct(int x, int y, int l, int halfperiods, int offset, int amp) {    //3
-        sin(x, y, l, halfperiods, offset, amp);
-        lastX += l;
-        if (amp != 0) {
-            lastY = y + amp*Mathh.sin(180*halfperiods+offset)/1000;
-        }
-        structlogger.add(lastX, linesInStructure);
-    }
-    private void floorStat(int x, int y, int l) {      // 1
-        line1(x, y, x + l, y);
-        lastX += l;
-        structlogger.add(lastX, linesInStructure);
-    }
-    private void abyss(int x, int y, int l) {
-        int prLength = 1000;
-        line(x, y, x + prLength, y);
-        lastX += prLength;
-        x += prLength;
-        int ang = 60; // springboard angle
-        int r = l / 8;
-        arc(x, y-r, r, ang, 90 - ang, 15, 10);
-        line(x+l - l / 5, y - r * Mathh.cos(ang) / 1000, x+l, y - r * Mathh.cos(ang) / 1000);
-        lastX += l;
-        lastY -= r * Mathh.cos(ang) / 1000;
-        structlogger.add(lastX, linesInStructure);
-    }
-    private void dotline(int x, int y, int n) {
-        int offsetL = 600;
-        for (int i = 0; i < n; i++) {
-            line(x + i*offsetL, y + i * 300/n, x + i*offsetL + 300, y + i * 300/n - 300);
-        }
-        lastX += n * offsetL;
-        structlogger.add(lastX, linesInStructure);
-    }
-    
-    private void sin(int x, int y, int l, int halfperiods, int offset, int amp) {    //3
-        if (amp == 0) {
-            line(x, y, x + l, y);
-        } else {
-            int step = 30;
-            int startA = offset;
-            int endA = offset + halfperiods * 180;
-            int a = endA - startA;
-            
-            int prevPointX = x;
-            int prevPointY = y + amp * Mathh.sin(offset) / 1000;
-            int nextPointX;
-            int nextPointY;
-            
-            for (int i = startA; i <= endA; i+=30) {
-                nextPointX = x + (i - startA)*l/a;
-                nextPointY = y + amp*Mathh.sin(i)/1000;
-                line1(prevPointX, prevPointY, nextPointX, nextPointY);
-                prevPointX = nextPointX;
-                prevPointY = nextPointY;
-            }
-            
-            if (a % step != 0) {
-                nextPointX = x + l;
-                nextPointY = y + amp*Mathh.sin(endA)/1000;
-                line1(prevPointX, prevPointY, nextPointX, nextPointY);
-            }
-        }
-    }
-    private void arc(int x, int y, int r, int ang, int of) {
-        arc(x, y, r, ang, of, 10, 10);
-    }
-    private void arc(int x, int y, int r, int ang, int of, int kx, int ky) { //k: 100 = 1.0
-        // calculated formula. r=20: sn=5,sl=72; r=1000: sn=36,sl=10
-        int sl=10000/(140+r);
-        sl = Math.min(72, Math.max(10, sl));
-        
-        while (of < 0) {
-            of += 360;
-        }
-
-        int linesFacing = 0;
-        if (ang == 360) {
-            linesFacing = 1; // these lines push bodies only in one direction
-        }
-        
-        int lastAng = 0;
-        for(int i = 0; i <= ang - sl; i+=sl) {
-            line(x+Mathh.cos(i+of)*kx*r/10000, y+Mathh.sin(i+of)*ky*r/10000, x+Mathh.cos(i+sl+of)*kx*r/10000,y+Mathh.sin(i+sl+of)*ky*r/10000, linesFacing);
-            lastAng = i + sl;
-        }
-
-        // close the circle if the angle is not multiple of the step (sl)
-        if (ang % sl != 0) {
-            line(x+Mathh.cos(lastAng+of)*kx*r/10000, y+Mathh.sin(lastAng+of)*ky*r/10000, x+Mathh.cos(ang+of)*kx*r/10000,y+Mathh.sin(ang+of)*ky*r/10000, linesFacing);
-        }
-    }
-    private /*int*/void line(int x1, int y1, int x2, int y2) {
-        line(x1, y1, x2, y2, 0);
-    }
-    private void line1(int x1, int y1, int x2, int y2) {
-        line(x1, y1, x2, y2, 1);
-    }
-    //int prevLineK = Integer.MIN_VALUE;
-    private void line(int x1, int y1, int x2, int y2, int facing) {
-        //x1 += 1;
-        //System.out.println(x1 + " " + x2);
-        int dx = x2-x1;
-        int dy = y2-y1;
-        if (dx == 0 && dy == 0) {
-            return;
-        }
-        
-        /*
-        * experimental optimization. instead of adding a new line with same
-        * tilt angle, move end point of previous line.
-        * It is buggy when it concatenates a line with line from
-        * another (previous) structure. That's why I disabled it
-        *
-        int lineK;
-        if (dx != 0) {
-            lineK = 1000*dy/dx; // TODO: experiment with "1000"
-        } else {
-            lineK = Integer.MIN_VALUE;
-        }
-        if (lineK == prevLineK) {
-            int prevLineEndPointID = lndscp.segmentCount()-1;
-            int prevLineEndPointX = lndscp.elementEndPoints()[prevLineEndPointID].xAsInt();
-            int prevLineEndPointY = lndscp.elementEndPoints()[prevLineEndPointID].yAsInt();
-            if (x1 == prevLineEndPointX && y1 == prevLineEndPointY) {
-                lndscp.elementEndPoints()[prevLineEndPointID] = FXVector.newVector(x2, y2);
-                int prevStructID = structlogger.getElementID(structlogger.getNumberOfLogged() - 1);
-                structlogger.structLog[prevStructID][1] -= 1;
-            }
-        } else {*/
-            lndscp.addSegment(FXVector.newVector(x1, y1), FXVector.newVector(x2, y2), (short) facing);
-            /*prevLineK = lineK;
-        }*/
-        linesInStructure++;
-    }
-    
 }

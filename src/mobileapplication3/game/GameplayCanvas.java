@@ -495,7 +495,7 @@ public class GameplayCanvas extends Container implements Runnable {
     }
 
 	private int getLowestSafeY() {
-		return worldgen != null ? WorldGen.getLowestY() : 5000;
+		return worldgen != null ? world.lowestY : 5000;
 	}
 
 	private void setSimulationArea() {
