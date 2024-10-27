@@ -89,7 +89,8 @@ public class DebugMenu extends GenericMenu implements Runnable {
                 Logger.logToStdout(isDebugEnabled);
                 break;
             case 1:
-                if (!Logger.isOnScreenLogEnabled()) {
+            	RootContainer.enableOnScreenLog = !RootContainer.enableOnScreenLog;
+                if (RootContainer.enableOnScreenLog) {
                     Logger.enableOnScreenLog(h);
                 } else {
                     Logger.disableOnScreenLog();
@@ -124,7 +125,7 @@ public class DebugMenu extends GenericMenu implements Runnable {
     void refreshStates() {
         setIsSpecialOptnActivated(DebugMenu.isDebugEnabled);
         if (DebugMenu.isDebugEnabled) {
-            setEnabledFor(Logger.isOnScreenLogEnabled(), 1);
+            setEnabledFor(RootContainer.enableOnScreenLog, 1);
             setEnabledFor(simulationMode, 2);
             setEnabledFor(discoMode, 3);
             setEnabledFor(whatTheGame, 4);

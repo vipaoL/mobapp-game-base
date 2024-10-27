@@ -786,9 +786,6 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
             g.fillRect(0, scH - scH*gameoverCountdown/GAME_OVER_COUNTDOWN_STEPS/2, scW, scH - 1);
         }
         
-        // draw on-screen log if enabled
-        Logger.paint(g);
-        
         // score counter
         if (WorldGen.isEnabled && world != null) {
             g.setColor(flipIndicator, flipIndicator, 255);
