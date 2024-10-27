@@ -142,8 +142,9 @@ public class AboutScreen extends GenericMenu implements Runnable {
         }
         g.setColor(0, 0, 0);
         g.fillRect(0, 0, scW, scH);
-        drawHeaderAndQR(g);
-        super.paint(g);
+        int headerAndQrH = drawHeaderAndQR(g);
+        int menuH = scH - headerAndQrH;
+        super.onPaint(g, x0, y0 + h - menuH, w, menuH, forceInactive);
         tick();
         
         if (selected == 0) {
@@ -171,10 +172,12 @@ public class AboutScreen extends GenericMenu implements Runnable {
             try {
                 g.drawImage(qr, scW / 2, offset, Graphics.HCENTER | Graphics.TOP);
             } catch (NullPointerException ex) {
-                g.drawLine(margin, offset, scW - margin, offset);
-                g.drawLine(margin, offset + qrSide, scW - margin, offset + qrSide);
-                g.drawLine(margin, offset, margin, offset + qrSide);
-                g.drawLine(scW - margin, offset, scW - margin, offset + qrSide);
+            	int leftX = scW / 2 - qrSide / 2;
+            	int rightX = scW / 2 + qrSide / 2;
+                g.drawLine(leftX, offset, rightX, offset);
+                g.drawLine(leftX, offset + qrSide, rightX, offset + qrSide);
+                g.drawLine(leftX, offset, leftX, offset + qrSide);
+                g.drawLine(rightX, offset, rightX, offset + qrSide);
                 g.setFont(font3);
                 int x = scW / 2;
                 int y = offset + qrSide / 2;
