@@ -132,7 +132,7 @@ public class AboutScreen extends GenericMenu implements Runnable {
         }
     }
     
-    public void paint(Graphics g) {
+    protected void onPaint(Graphics g, int x0, int y0, int w, int h, boolean forceInactive) {
     	//   if qr isn't selected, repaint on each frame
         //
         //   if big qr is open, draw it oncely,

@@ -90,7 +90,7 @@ public class MenuCanvas extends GenericMenu implements Runnable {
         }
     }
 
-    public void paint(Graphics g) {
+    protected void onPaint(Graphics g, int x0, int y0, int w, int h, boolean forceInactive) {
         try {
             if (bg != null) {
             	if (!bg.drawAsBG(g)) {
@@ -98,7 +98,7 @@ public class MenuCanvas extends GenericMenu implements Runnable {
             	}
             }
             if (isInited) {
-                super.paint(g);
+                super.onPaint(g, x0, y0, w, h, forceInactive);
                 tick();
             }
         } catch (Exception ex) { }
@@ -133,7 +133,7 @@ public class MenuCanvas extends GenericMenu implements Runnable {
         }
     }
     
-    public boolean keyPressed(int keyCode, int count) {         // Keyboard
+    protected boolean onKeyPressed(int keyCode, int count) {         // Keyboard
         if (keyCode == Keys.KEY_STAR | keyCode == -10) {
             if (!Logger.isOnScreenLogEnabled()) {
                 Logger.enableOnScreenLog(h);
@@ -141,7 +141,7 @@ public class MenuCanvas extends GenericMenu implements Runnable {
                 Logger.disableOnScreenLog();
             }
         }
-        return super.keyPressed(keyCode, count);
+        return super.handleKeyPressed(keyCode, count);
     }
     
     

@@ -13,14 +13,14 @@ import mobileapplication3.platform.Platform;
 import mobileapplication3.platform.ui.Font;
 import mobileapplication3.platform.ui.Graphics;
 import mobileapplication3.platform.ui.RootContainer;
-import mobileapplication3.ui.Container;
+import mobileapplication3.ui.CanvasComponent;
 import mobileapplication3.ui.Keys;
 
 /**
  *
  * @author vipaol
  */
-public abstract class GenericMenu extends Container {
+public abstract class GenericMenu extends CanvasComponent {
     private static final int PAUSE_DELAY = 5;
     public int w, h;
     private int x0, y0, fontH, tick = 0, k = 10, keyPressDelay = 0,
@@ -60,7 +60,7 @@ public abstract class GenericMenu extends Container {
     public static final int SIEMENS_KEY_RIGHT_SOFT = -4;
     public static final int SE_KEY_BACK = -11;
     
-    public void paint(Graphics g) {
+    protected void onPaint(Graphics g, int x0, int y0, int w, int h, boolean forceInactive) {
     	if (bgColor >= 0) {
     		g.setColor(bgColor);
     		g.fillRect(x0, y0, Math.max(w, h), Math.max(w, h));
@@ -114,7 +114,6 @@ public abstract class GenericMenu extends Container {
             g.setColor(0x808080);
             g.drawString("Loading the menu...", w / 2, h, Graphics.BOTTOM | Graphics.HCENTER);
         }
-        Logger.paint(g);
     }
     
     public int findOptimalFont(int canvW, int canvH, String[] options) {
@@ -164,17 +163,17 @@ public abstract class GenericMenu extends Container {
         return isInited;
     }
     
-    public boolean pointerPressed(int x, int y) {
+    public boolean handlePointerPressed(int x, int y) {
         handlePointer(x, y);
         return true;
     }
 
-    public boolean pointerDragged(int x, int y) {
+    public boolean handlePointerDragged(int x, int y) {
         handlePointer(x, y);
         return true;
     }
 
-    public boolean pointerReleased(int x, int y) {
+    public boolean handlePointerClicked(int x, int y) {
         if (handlePointer(x, y)) {
             selectPressed();
         }
@@ -243,12 +242,12 @@ public abstract class GenericMenu extends Container {
         return isSelectPressed;
     }
     
-    public boolean keyRepeated(int keyCode, int pressedCount) {
+    public boolean handleKeyRepeated(int keyCode, int pressedCount) {
     	handleKeyPressed(keyCode);
     	return true;
     }
     
-    public boolean keyPressed(int keyCode, int count) {
+    public boolean handleKeyPressed(int keyCode, int count) {
         if(handleKeyPressed(keyCode)) {
             selectPressed();
             isSelectPressed = false;
@@ -256,7 +255,7 @@ public abstract class GenericMenu extends Container {
         return true;
     }
     
-    public boolean keyReleased(int keyCode, int count) {
+    public boolean handleKeyReleased(int keyCode, int count) {
     	return true;
     }
     
@@ -327,7 +326,7 @@ public abstract class GenericMenu extends Container {
             case SIEMENS_KEY_FIRE:
                 return handleKeyStates(Keys.FIRE);
             default:
-                return handleKeyStates(RootContainer.getGameActionn(keyCode));
+                return handleKeyStates(RootContainer.getAction(keyCode));
         }
         selected += firstReachable;
         
@@ -397,7 +396,11 @@ public abstract class GenericMenu extends Container {
         this.h = h;
         reloadCanvasParameters(w, h);
     }
-    
+
+    public boolean canBeFocused() {
+    	return true;
+    }
+
     public void loadParams(String[] options, int[] statemap) {
         loadParams(options, 0, options.length - 1, options.length - 1, statemap);
     }

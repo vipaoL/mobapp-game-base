@@ -16,7 +16,8 @@ import mobileapplication3.platform.Sound;
 import mobileapplication3.platform.ui.Font;
 import mobileapplication3.platform.ui.Graphics;
 import mobileapplication3.platform.ui.RootContainer;
-import mobileapplication3.ui.Container;
+import mobileapplication3.ui.CanvasComponent;
+import mobileapplication3.ui.IUIComponent;
 import mobileapplication3.ui.Keys;
 import utils.MobappGameSettings;
 
@@ -24,7 +25,7 @@ import utils.MobappGameSettings;
  *
  * @author vipaol
  */
-public class GameplayCanvas extends Container implements Runnable {
+public class GameplayCanvas extends CanvasComponent implements Runnable {
     public static final int TICK_DURATION = 50;
 	private static final String[] MENU_HINT = {"MENU:", "here(touch), #", "D, left soft"};
     private static final String[] PAUSE_HINT = {"PAUSE:", "here(touch), *,", "B, right soft"};
@@ -259,7 +260,7 @@ public class GameplayCanvas extends Container implements Runnable {
 	                    world.tick();
 	                    boolean skipThisFrame = tick % 2 != 0 && oneFrameTwoTicks;
 	                    if (!skipThisFrame) {
-	                        repaint();
+	                        paint();
 	                    }
 	                    isBusy = false;
 	
@@ -438,7 +439,7 @@ public class GameplayCanvas extends Container implements Runnable {
 	                    wasPaused = true;
 	                    sleep = 200;
 	                    if (isVisible) {
-	                        repaint();
+	                        paint();
 	                    }
 	                }
 	                // fps/tps control
@@ -591,7 +592,7 @@ public class GameplayCanvas extends Container implements Runnable {
         g.fillRect(0, 0, maxScSide, maxScSide);
     }
     
-    public void paint(Graphics g) {
+    public void onPaint(Graphics g, int x0, int y0, int w, int h, boolean forceInactive) {
     	drawBg(g);
         if (loadingProgress < 100) {
             drawLoading(g);
@@ -602,7 +603,7 @@ public class GameplayCanvas extends Container implements Runnable {
         }
     }
 
-    public synchronized void repaint() {
+    public synchronized void paint() {
     	if (!gameOver) {
 	    	try {
 	    		Graphics g = getUGraphics();
@@ -836,7 +837,7 @@ public class GameplayCanvas extends Container implements Runnable {
     public void setLoadingProgress(int percents) {
         loadingProgress = percents;
         Logger.log(percents + "%");
-        repaint();
+        paint();
     }
     
     private void setFont(Font font, Graphics g) {
@@ -849,7 +850,9 @@ public class GameplayCanvas extends Container implements Runnable {
     private void log(String text) {
     	statusMessage = text;
         Logger.log(text);
-        if (Logger.isOnScreenLogEnabled() || loadingProgress < 100) repaint();
+        if (Thread.currentThread() == gameThread && (Logger.isOnScreenLogEnabled() || loadingProgress < 100)) {
+        	paint();
+        }
     }
     
     public void giveEffect(short[] data) {
@@ -997,7 +1000,7 @@ public class GameplayCanvas extends Container implements Runnable {
     }
 
     // keyboard events
-    public boolean keyReleased(int keyCode, int count) {
+    public boolean handleKeyReleased(int keyCode, int count) {
     	if (gameOver) {
             return false;
         }
@@ -1010,12 +1013,12 @@ public class GameplayCanvas extends Container implements Runnable {
         return true;
     }
     
-    public boolean keyPressed(int keyCode, int count) {
+    public boolean handleKeyPressed(int keyCode, int count) {
 		if (gameOver) {
 			return false;
 		}
 
-        int gameAction = RootContainer.getGameActionn(keyCode);
+        int gameAction = RootContainer.getAction(keyCode);
         // menu
         if (keyCode == Keys.KEY_SOFT_LEFT || keyCode == Keys.KEY_POUND || gameAction == Keys.GAME_D) {
             stop(true, false);
@@ -1040,10 +1043,10 @@ public class GameplayCanvas extends Container implements Runnable {
         return true;
     }
     
-    public boolean keyRepeated(int keyCode, int pressedCount) { return !gameOver; }
+    public boolean handleKeyRepeated(int keyCode, int pressedCount) { return !gameOver; }
 
     // touch events
-    public boolean pointerPressed(int x, int y) {
+    public boolean handlePointerPressed(int x, int y) {
         if (x > scW * 2 / 3 && y < scH / 6) {
             pauseTouched = true;
         } else if (x < scW / 3 && y < scH / 6) {
@@ -1058,7 +1061,7 @@ public class GameplayCanvas extends Container implements Runnable {
         pointerY = y;
         return !gameOver;
     }
-    public boolean pointerDragged(int x, int y) {
+    public boolean handlePointerDragged(int x, int y) {
     	if (gameOver) {
             return false;
         }
@@ -1074,7 +1077,7 @@ public class GameplayCanvas extends Container implements Runnable {
         pointerY = y;
         return true;
     }
-    public boolean pointerReleased(int x, int y) {
+    public boolean handlePointerReleased(int x, int y) {
         if (pauseTouched) {
             pauseButtonPressed();
         }
@@ -1087,6 +1090,10 @@ public class GameplayCanvas extends Container implements Runnable {
         accel = false;
         return !gameOver;
     }
+
+    public boolean canBeFocused() {
+		return true;
+	}
 
     class FlipCounter {
         int step = 0;
