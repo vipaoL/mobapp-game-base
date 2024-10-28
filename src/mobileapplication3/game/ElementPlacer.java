@@ -3,18 +3,23 @@ package mobileapplication3.game;
 import at.emini.physics2D.Body;
 import at.emini.physics2D.Landscape;
 import at.emini.physics2D.Shape;
-import at.emini.physics2D.UserData;
 import at.emini.physics2D.util.FXUtil;
 import at.emini.physics2D.util.FXVector;
+import mobileapplication3.platform.Logger;
 import mobileapplication3.platform.Mathh;
 
 public class ElementPlacer {
-    public static final int LINE = 2;
-    public static final int CIRCLE = 3;
-    public static final int BROKEN_LINE = 4;
-    public static final int BROKEN_CIRCLE = 5;
-    public static final int SIN = 6;
-    public static final int ACCELERATOR = 7;
+    public static final short EOF = 0;
+    public static final short END_POINT = 1;
+    public static final short LINE = 2;
+    public static final short CIRCLE = 3;
+    public static final short BROKEN_LINE = 4;
+    public static final short BROKEN_CIRCLE = 5;
+    public static final short SINE = 6;
+    public static final short ACCELERATOR = 7;
+    public static final short TRAMPOLINE = 8;
+    public static final short LEVEL_START = 9;
+    public static final short LEVEL_FINISH = 10;
 
     private int lineCount;
     private GraphicsWorld w;
@@ -69,28 +74,28 @@ public class ElementPlacer {
                 fallinPlatf.setUserData(new MUserData(MUserData.TYPE_FALLING_PLATFORM, new short[] {20}));
                 w.addBody(fallinPlatf);
             }
-
+            updateLowestY(Math.max(y1, y2) + platfH);
         } else if (id == BROKEN_CIRCLE) {
             // not implemented yet
             arc(originX + data[1], originY + data[2], data[3], 360, 0);
-        } else if (id == SIN) {
+        } else if (id == SINE) {
             sin(originX + data[1], originY + data[2], data[3], data[4], data[5], data[6]);
         } else if (id == ACCELERATOR) {
             int x = originX + data[1];
             int y = originY + data[2];
             int l = data[3];
-            int h = data[4];
+            int thickness = data[4];
             int ang = data[5];
 
             short effectID = GameplayCanvas.EFFECT_SPEED;
             short effectDuration = data[8];
             short directionOffset = data[6];
-            short speedMultipiler = data[7];
+            short speedMultiplier = data[7];
 
             int centerX = x + l * Mathh.cos(ang) / 2000;
             int centerY = y + l * Mathh.sin(ang) / 2000;
 
-            int colorModifier = (speedMultipiler - 100) * 3;
+            int colorModifier = (speedMultiplier - 100) * 3;
             int red = Math.min(255, Math.max(0, colorModifier));
             int blue = Math.min(255, Math.max(0, -colorModifier));
             int green = blue;
@@ -100,25 +105,41 @@ public class ElementPlacer {
             }
 
             int color = ((red & 0xff) << 16) | ((green & 0xff) << 8) | (blue & 0xff);
-
-            Shape plate = Shape.createRectangle(l, h);
+            Shape plate = Shape.createRectangle(l, thickness);
             Body pressurePlate = new Body(centerX, centerY, plate, false);
-            UserData mUserData = new MUserData(MUserData.TYPE_ACCELERATOR, new short[] {effectID, effectDuration, directionOffset, speedMultipiler});
-            ((MUserData) mUserData).color = color;
+            MUserData mUserData = new MUserData(MUserData.TYPE_ACCELERATOR, new short[] {effectID, effectDuration, directionOffset, speedMultiplier});
+            mUserData.color = color;
             pressurePlate.setUserData(mUserData);
-            //Main.log(((MUserData) pressurePlate.getUserData()).bodyType);
+            //Main.log(pressurePlate.getUserData().bodyType);
             pressurePlate.setRotation2FX(FXUtil.TWO_PI_2FX / 360 * ang);
             w.addBody(pressurePlate);
+            updateLowestY(y + Math.max(l, thickness));
+        } else if (id == LEVEL_FINISH) {
+            int x = originX + data[1];
+            int y = originY + data[2];
+            int l = data[3];
+            int thickness = data[4];
+            int ang = data[5];
+
+            Shape plate = Shape.createRectangle(l, thickness);
+            Body pressurePlate = new Body(x, y, plate, false);
+            MUserData mUserData = new MUserData(MUserData.TYPE_LEVEL_FINISH, null);
+            pressurePlate.setUserData(mUserData);
+            //Main.log(pressurePlate.getUserData().bodyType);
+            pressurePlate.setRotation2FX(FXUtil.TWO_PI_2FX / 360 * ang);
+            w.addBody(pressurePlate);
+            updateLowestY(y + Math.max(l, thickness));
         }
+        Logger.log("lowestY=", w.lowestY);
     }
 
-    public void sin(int x, int y, int l, int halfperiods, int offset, int amp) {    //3
+    public void sin(int x, int y, int l, int halfPeriods, int offset, int amp) {    //3
         if (amp == 0) {
             line(x, y, x + l, y);
         } else {
             int step = 30;
             int startA = offset;
-            int endA = offset + halfperiods * 180;
+            int endA = offset + halfPeriods * 180;
             int a = endA - startA;
 
             int prevPointX = x;
@@ -140,6 +161,7 @@ public class ElementPlacer {
                 line1(prevPointX, prevPointY, nextPointX, nextPointY);
             }
         }
+        updateLowestY(y + amp);
     }
     public void arc(int x, int y, int r, int ang, int of) {
         arc(x, y, r, ang, of, 10, 10);
@@ -168,6 +190,8 @@ public class ElementPlacer {
         if (ang % sl != 0) {
             line(x+Mathh.cos(lastAng+of)*kx*r/10000, y+Mathh.sin(lastAng+of)*ky*r/10000, x+Mathh.cos(ang+of)*kx*r/10000,y+Mathh.sin(ang+of)*ky*r/10000, linesFacing);
         }
+
+        updateLowestY(y + r);
     }
 
     public void line(int x1, int y1, int x2, int y2) {
@@ -214,5 +238,10 @@ public class ElementPlacer {
             /*prevLineK = lineK;
         }*/
         lineCount++;
+        updateLowestY(Math.max(y1, y2));
+    }
+
+    private void updateLowestY(int y) {
+        w.lowestY = Math.max(y, w.lowestY);
     }
 }

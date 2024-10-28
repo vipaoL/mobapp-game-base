@@ -212,8 +212,6 @@ public class WorldGen implements Runnable {
         structLogger.add(lastX, structData[2]);
 
         Logger.log("lastX=", lastX);
-        w.lowestY = Math.max(lastY, w.lowestY);
-        Logger.log("lowestY=", w.lowestY);
     }
     
     public void pause() {
@@ -382,7 +380,7 @@ public class WorldGen implements Runnable {
     
     private class StructLog {
         public static final int MAX_DIST_TO_RM_STRUCT = 4000;
-        public static final int MAX_DIST_TO_RM_STRUCT_FOR_SIMULATION = 300;
+        public static final int MAX_DIST_TO_RM_STRUCT_IN_SIMULATION = 300;
         private short[][] structLog;
         private int numberOfLoggedStructs = 0;
         private int ringLogStart = 0;
@@ -489,7 +487,7 @@ public class WorldGen implements Runnable {
         public boolean shouldRmFirstStruct() {
             int maxDistToRemove = MAX_DIST_TO_RM_STRUCT;
             if (DebugMenu.simulationMode) {
-                maxDistToRemove = MAX_DIST_TO_RM_STRUCT_FOR_SIMULATION;
+                maxDistToRemove = MAX_DIST_TO_RM_STRUCT_IN_SIMULATION;
             }
             try {
                 if (getNumberOfLogged() > 0) {

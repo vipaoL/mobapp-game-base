@@ -42,7 +42,8 @@ public class GraphicsWorld extends World {
     private int halfScWidth = scWidth/2;
     public static int scHeight = 200;
     private int scMinSide = Math.min(scWidth, scHeight);
-    
+
+    public boolean removeBodies = true;
     private boolean betterGraphics;
     private boolean bg;
     public static boolean bgOverride = false;
@@ -114,16 +115,6 @@ public class GraphicsWorld extends World {
                 ex.printStackTrace();
             }
         }
-    }
-
-    public void addCar() {
-        int x = 0;
-        if (WorldGen.isEnabled) {
-            x = -3000;
-            //x = -1114;
-        }
-        addCar(x, -400, FXUtil.TWO_PI_2FX / 360 * 30);
-        //addCar(x, 14, FXUtil.TWO_PI_2FX / 360 * -50);
     }
 
     public void addCar(int spawnX, int spawnY, int ang2FX) {
@@ -208,15 +199,17 @@ public class GraphicsWorld extends World {
             } catch (ArrayIndexOutOfBoundsException ignored) { }
         }
         // removing all that fell out the world or got too left
-        for (int i = 0; i < getBodyCount(); i++) {
-            if (viewField < 100) {
-                break; // Hack to not remove bodies until the correct screen size is set. Needs a proper fix
-            }
-            Body[] bodies = getBodies();
-            Body body = bodies[i];
-            if (body.positionFX().xAsInt() < barrierX || body.positionFX().yAsInt() > lowestY + 2000) {
-                if (body != carbody && body != leftwheel && body != rightwheel) {
-                    removeBody(body);
+        if (removeBodies) {
+            for (int i = 0; i < getBodyCount(); i++) {
+                if (viewField < 100) {
+                    break; // Hack to not remove bodies until the correct screen size is set. Needs a proper fix
+                }
+                Body[] bodies = getBodies();
+                Body body = bodies[i];
+                if (body.positionFX().xAsInt() < barrierX || body.positionFX().yAsInt() > lowestY + 2000) {
+                    if (body != carbody && body != leftwheel && body != rightwheel) {
+                        removeBody(body);
+                    }
                 }
             }
         }
@@ -319,6 +312,8 @@ public class GraphicsWorld extends World {
                     int bodyType = mUserData.bodyType;
                     if (bodyType == MUserData.TYPE_ACCELERATOR) {
                         g.setColor(mUserData.color);
+                    } else if (bodyType == MUserData.TYPE_LEVEL_FINISH) {
+                        g.setColor(0x00ff00);
                     } else {
                         g.setColor(currColBodies);
                     }

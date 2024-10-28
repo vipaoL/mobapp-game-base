@@ -63,9 +63,11 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
 
     private int carVelocitySqr;
     private int carAngle = 0;
+	public int carSpawnX = 100;
+	public int carSpawnY = -400;
     // motor state
     private boolean accel = false;
-    
+
     // indicators
     private int flipIndicator = 255; // for blinking counter when flip done
     private int loadingProgress = 0;
@@ -104,6 +106,7 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
     private GraphicsWorld world;
     private WorldGen worldgen;
     private FlipCounter flipCounter;
+	private IUIComponent prevScreen = null;
 
     private Thread gameThread = null;
 	private int baseTimestepFX;
@@ -118,6 +121,22 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
     	this();
         world = w;
     }
+
+	public GameplayCanvas(IUIComponent prevScreen) {
+		this();
+		this.prevScreen = prevScreen;
+		world = new GraphicsWorld();
+	}
+
+	public GameplayCanvas loadLevel(short[][] structure) {
+		StructurePlacer.place(world, false, structure, 0, 0);
+		if (structure[0][0] == ElementPlacer.LEVEL_START) {
+			carSpawnX = structure[0][1];
+			carSpawnY = structure[0][2];
+		}
+		world.removeBodies = false;
+		return this;
+	}
     
     public void init() {
         log("starting game thread");
@@ -136,7 +155,12 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
             log("wg started");
         }
         setLoadingProgress(50);
-        world.addCar();
+		int x = carSpawnX;
+		if (WorldGen.isEnabled) {
+			x = -3000;
+			//x = -1114;
+		}
+		world.addCar(x, carSpawnY, FXUtil.TWO_PI_2FX / 360 * 30);
         setLoadingProgress(60);
     }
     
@@ -328,9 +352,10 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
 	                    carAngle = 360 - FXUtil.angleInDegrees2FX(world.carbody.rotation2FX());
 	
 	                    // when the motor is turned on
-	                    if (accel) {
+						boolean isFlying = timeFlying <= 2;
+						if (accel) {
 	                        ticksMotorTurnedOff = 0;
-	                        if (timeFlying <= 2 || uninterestingDebug) {
+	                        if (isFlying || uninterestingDebug) {
 	                            // apply motor force when on the ground
 	
 	                        	// set motor power according to car speed
@@ -405,14 +430,17 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
 	                                }
 	                                if (bigTick) {
 	                                	ticksMotorTurnedOff++;
+										if (isFlying) {
+											ticksMotorTurnedOff++;
+										}
 	                                }
 	                            } catch (NullPointerException ex) {
 	                                ex.printStackTrace();
 	                            }
 	                        }
 	                    }
-	                    
-	                    if (tick < 3) {
+
+                        if (tick < 3) {
 	                    	tick++;
 	                    } else {
 	                    	tick = 0;
@@ -496,7 +524,7 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
     }
 
 	private int getLowestSafeY() {
-		return worldgen != null ? world.lowestY : 5000;
+		return world.lowestY;
 	}
 
 	private void setSimulationArea() {
@@ -540,6 +568,11 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
                             giveEffect(bodyUserData.data);
                             world.setWheelColor(bodyUserData.color);
                             break;
+						case MUserData.TYPE_LEVEL_FINISH:
+							if (!isPopupShown()) {
+								showPopup(new LevelCompletedScreen(this));
+							}
+							break;
                     }
                 }
             }
@@ -936,7 +969,11 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
                 }
                 log("game: stopped");
                 if (openMenu) {
-                	RootContainer.setRootUIComponent(new MenuCanvas(inst));
+					if (prevScreen == null) {
+						RootContainer.setRootUIComponent(new MenuCanvas(inst));
+					} else {
+						RootContainer.setRootUIComponent(prevScreen);
+					}
                 }
             }
         };

@@ -6,12 +6,14 @@
 package utils;
 
 import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 
 import mobileapplication3.platform.FileUtils;
 import mobileapplication3.platform.Logger;
 import mobileapplication3.platform.Platform;
+import mobileapplication3.platform.Utils;
 
 /**
  *
@@ -23,15 +25,18 @@ public class MgStruct {
     
     /*
      * 0 - end of file
-     * 1 - end point of structure
+     * 1 - end point
      * 2 - line
      * 3 - circle/arc
      * 4 - breakable line
      * 5 - breakable circle (not implemented yet)
-     * 6 - sinus (not implemented yet)
-     * 7 - accellerator
+     * 6 - sine
+     * 7 - accelerator
+     * 8 - trampoline (not implemented yet)
+     * 9 - level start
+     * 10 - level finish
      */
-    static int[] argsNumber = {0, /*1*/2, /*2*/4, /*3*/7, /*4*/9, /*5*/10, /*6*/6, /*7*/8};
+    static int[] argsNumber = {0, /*1*/2, /*2*/4, /*3*/7, /*4*/9, /*5*/10, /*6*/6, /*7*/8, /*8*/8, /*9*/2, /*10*/5};
     static final int STRUCTURE_STORAGE_SIZE = 32;
 
     public static short[][][] structStorage = new short[STRUCTURE_STORAGE_SIZE][][];
@@ -61,7 +66,7 @@ public class MgStruct {
             is = Platform.getResource(path);
             DataInputStream dis = new DataInputStream(is);
             try {
-            	readFromDataInputStream(dis);
+            	saveStructToStorage(readFromDataInputStream(dis));
             } finally {
 				dis.close();
 			}
@@ -79,7 +84,7 @@ public class MgStruct {
     public boolean loadFromFiles() {
         Logger.log("mgs load()");
         loadCancelled = false;
-        String[] paths = GameFileUtils.listFilesInAllPlaces("MGStructs");
+        String[] paths = GameFileUtils.listFilesInAllPlaces("MobappGame/MGStructs");
         int loadedFromFiles = 0;
         loadedStructsNumber = loadedFromResNumber;
         for (int i = 0; i < paths.length; i++) {
@@ -99,7 +104,9 @@ public class MgStruct {
             }
             if (dis != null) {
                 try {
-                    if (readFromDataInputStream(dis)) {
+                    short[][] structure = readFromDataInputStream(dis);
+                    if (structure != null) {
+                        saveStructToStorage(structure);
                         loadedFromFiles += 1;
                         Logger.log(path + " loaded");
                     }
@@ -118,16 +125,20 @@ public class MgStruct {
         return loadedFromFiles > 0;
     }
 
-    public boolean readFromDataInputStream(DataInputStream dis) throws IOException {
+    public static short[][] readFromDataInputStream(DataInputStream dis) throws IOException {
+        if (dis == null) {
+            return null;
+        }
+
         try {
-            short fileFormatVervion = dis.readShort(); // read file format version
-            if (isArrContain(SUPPORTED_FILE_FORMAT_VERSIONS, fileFormatVervion)) {
+            short fileFormatVersion = dis.readShort(); // read file format version
+            if (isArrContain(SUPPORTED_FILE_FORMAT_VERSIONS, fileFormatVersion)) {
                 // number of primitives in the structure
                 int length = 16;
-                if (fileFormatVervion > 0) {
+                if (fileFormatVersion > 0) {
                     length = dis.readShort();
                 }
-                Logger.log("read: ver=" + fileFormatVervion + " length=" + length);
+                Logger.log("read: ver=" + fileFormatVersion + " length=" + length);
                 
                 short[][] structure = new short[length][];
                 for (int c = 0; true; c++) {
@@ -142,28 +153,34 @@ public class MgStruct {
                     short[] data = new short[argsNumber[id] + 1]; // {2, 0, 0, 100, 0} // - e.g.: line
                     // first cell is ID of primitive, next cells are arguments
                     data[0] = id;
-                    for (int i = 1; i < data.length; i++) {
-                        data[i] = dis.readShort();
+                    try {
+                        for (int i = 1; i < data.length; i++) {
+                            data[i] = dis.readShort();
+                        }
+                    } catch (EOFException ex) {
+                        System.out.println(Utils.shortArrayToString(data));
+                        throw ex;
                     }
+                    System.out.println(Utils.shortArrayToString(data));
                     structure[c] = data;
                 }
-                saveStructToStorage(structure);
+
                 try {
                 	dis.close();
                 } catch (IOException e) { }
-                return true;
+                return structure;
             } else {
-                Logger.log("Unsupported file format version: " + fileFormatVervion);
+                Logger.log("Unsupported file format version: " + fileFormatVersion);
                 try {
                 	dis.close();
                 } catch (IOException e) { }
-                return false;
+                return null;
             }
         } catch(ArrayIndexOutOfBoundsException ex) {
-            Logger.log("error parsing file");
+            Logger.log("error parsing file " + ex);
             ex.printStackTrace();
             dis.close();
-            return false;
+            return null;
         }
     }
     
@@ -183,7 +200,7 @@ public class MgStruct {
     	return array;
     }
     
-    boolean isArrContain(short[] arr, short a) {
+    static boolean isArrContain(short[] arr, short a) {
         for (int i = 0; i < arr.length; i++) {
             if (arr[i] == a) {
                 return true;

@@ -15,6 +15,7 @@ import mobileapplication3.platform.Logger;
 import mobileapplication3.platform.Platform;
 import mobileapplication3.platform.ui.RootContainer;
 import utils.GameFileUtils;
+import utils.MgStruct;
 
 /**
  *
@@ -23,9 +24,9 @@ import utils.GameFileUtils;
 public class Levels extends GenericMenu implements Runnable {
 
     private String[] levelPaths = new String[0];
-    private String[] buttons = new String[2];
+    private String[] buttons;
     
-    public static final String LEVELS_FOLDER_NAME = "Levels";
+    public static final String LEVELS_FOLDER_NAME = "MobappGame/Levels";
     
     public Levels() {
         Logger.log("Levels:constr");
@@ -61,27 +62,39 @@ public class Levels extends GenericMenu implements Runnable {
     public void startLevel(final String path) {
         (new Thread(new Runnable() {
             public void run() {
-                GameplayCanvas gameCanvas = new GameplayCanvas(readWorldFile(path));
-                RootContainer.setRootUIComponent(gameCanvas);
-                isStopped = true;
+                GameplayCanvas gameCanvas = null;
+                if (path.endsWith(".phy")) {
+                    gameCanvas = new GameplayCanvas(readWorldFile(path));
+                } else if (path.endsWith(".mglvl")) {
+                    gameCanvas = loadLevel(path);
+                }
+                if (gameCanvas != null) {
+                    RootContainer.setRootUIComponent(gameCanvas);
+                    isStopped = true;
+                }
             }
         })).start();
     }
-    
-    public GraphicsWorld readWorldFile(String path) {
-        PhysicsFileReader reader;
+
+    private static GameplayCanvas loadLevel(String path) {
         try {
-            InputStream is;
-            is = FileUtils.fileToDataInputStream(path);
-            reader = new PhysicsFileReader(is);
-            GraphicsWorld w = new GraphicsWorld(World.loadWorld(reader));
-            reader.close();
-            is.close();
-            return w;
+            short[][] structure = MgStruct.readFromDataInputStream(FileUtils.fileToDataInputStream(path));
+            if (structure != null) {
+                return new GameplayCanvas(new GraphicsWorld()).loadLevel(structure);
+            }
         } catch (IOException ex) {
-            ex.printStackTrace();
+            Platform.showError(ex);
         }
         return null;
+    }
+
+    public GraphicsWorld readWorldFile(String path) {
+        PhysicsFileReader reader;
+        InputStream is = FileUtils.fileToDataInputStream(path);
+        reader = new PhysicsFileReader(is);
+        GraphicsWorld w = new GraphicsWorld(World.loadWorld(reader));
+        reader.close();
+        return w;
     }
     
     public void selectPressed() {

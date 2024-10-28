@@ -23,10 +23,12 @@ public class MenuCanvas extends GenericMenu implements Runnable {
     		"Play",
     		"Load Structures",
     		"Load World",
+    		"Editor",
     		"About",
     		"Settings",
     		"Exit",
-    		""};
+    		""
+	};
 
     private static int defaultSelected = 1; // currently selected option in menu
     
@@ -56,13 +58,14 @@ public class MenuCanvas extends GenericMenu implements Runnable {
     public void init() {
         Logger.log("menu:init");
         
-        if (Logger.isOnScreenLogEnabled()) {
-            Logger.enableOnScreenLog(h);
-        }
-        
         if (areExtStructsLoaded) { // highlight and change label of "Ext Structs" btn if it already loaded
             setStateFor(1, 2);
             menuOptions[2] = "Reload";
+        }
+        try {
+            Class.forName("mobileapplication3.editor.MainMenu");
+        } catch (ClassNotFoundException ex) {
+        	setStateFor(STATE_INACTIVE, 4);
         }
         isInited = true;
         (new Thread(this, "menu canvas")).start();
@@ -111,7 +114,7 @@ public class MenuCanvas extends GenericMenu implements Runnable {
     	}
     }
 
-    public void startGame() {
+    private void startGame() {
         if (isGameStarted) {
             return;
         }
@@ -161,28 +164,33 @@ public class MenuCanvas extends GenericMenu implements Runnable {
             WorldGen.isEnabled = false;
             RootContainer.setRootUIComponent(new Levels());
         }
-        if (selected == 4) { // About
+        if (selected == 4) { // Editor
+        	stop();
+        	mobileapplication3.editor.Editor.startEditor();
+        	Logger.log("opened editor");
+        }
+        if (selected == 5) { // About
         	stop();
             RootContainer.setRootUIComponent(new AboutScreen());
         }
-        if (selected == 5) { // Settings
+        if (selected == 6) { // Settings
         	stop();
             RootContainer.setRootUIComponent(new SettingsScreen());
         }
-        if (selected == 6) { // Exit
+        if (selected == 7) { // Exit
         	stop();
             Platform.exit();
         }
     }
     
-    void stop() {
+    private void stop() {
     	isStopped = true;
         if (bg != null) {
         	bg.stop(false, true);
         }
     }
     
-    void log(String s) {
+    private void log(String s) {
         Logger.log(s);
         repaint();
     }
