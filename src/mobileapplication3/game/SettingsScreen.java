@@ -12,6 +12,7 @@ public class SettingsScreen extends GenericMenu implements Runnable {
             "Enable background",
             "Show battery level",
             "Debug settings",
+            "About",
             "Back"
         };
         
@@ -97,9 +98,12 @@ public class SettingsScreen extends GenericMenu implements Runnable {
                 default:
                     break;
             }
-            if (selected == menuOpts.length - 2) {
+            if (selected == menuOpts.length - 3) {
                 isStopped = true;
                 RootContainer.setRootUIComponent(new DebugMenu());
+            } else if (selected == menuOpts.length - 2) {
+                isStopped = true;
+                RootContainer.setRootUIComponent(new AboutScreen());
             } else if (selected == menuOpts.length - 1) {
                 isStopped = true;
                 RootContainer.setRootUIComponent(new MenuCanvas());

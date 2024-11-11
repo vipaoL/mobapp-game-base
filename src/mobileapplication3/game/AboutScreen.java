@@ -231,7 +231,7 @@ public class AboutScreen extends GenericMenu implements Runnable {
         }
         if (selected == MENU_OPTS.length - 1) {
             isStopped = true;
-            RootContainer.setRootUIComponent(new MenuCanvas());
+            RootContainer.setRootUIComponent(new SettingsScreen());
         }
     }
 }
