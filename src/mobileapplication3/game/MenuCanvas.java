@@ -24,6 +24,7 @@ public class MenuCanvas extends GenericMenu implements Runnable {
     		"Load Structures",
     		"Load World",
     		"Editor",
+    		"Records",
     		"Settings",
     		"Exit",
     		""
@@ -168,11 +169,15 @@ public class MenuCanvas extends GenericMenu implements Runnable {
         	mobileapplication3.editor.Editor.startEditor();
         	Logger.log("opened editor");
         }
-        if (selected == 5) { // Settings
+        if (selected == 5) { // Records
+            stop();
+            RootContainer.setRootUIComponent(new RecordsScreen());
+        }
+        if (selected == 6) { // Settings
         	stop();
             RootContainer.setRootUIComponent(new SettingsScreen());
         }
-        if (selected == 6) { // Exit
+        if (selected == 7) { // Exit
         	stop();
             Platform.exit();
         }

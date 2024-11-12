@@ -12,6 +12,8 @@ import at.emini.physics2D.util.FXVector;
 import mobileapplication3.platform.Battery;
 import mobileapplication3.platform.Logger;
 import mobileapplication3.platform.Mathh;
+import mobileapplication3.platform.Platform;
+import mobileapplication3.platform.Records;
 import mobileapplication3.platform.Sound;
 import mobileapplication3.platform.ui.Font;
 import mobileapplication3.platform.ui.Graphics;
@@ -47,7 +49,7 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
     private int hintVisibleTimer = 120; // in ticks
     private boolean unlimitFPS = true;
     private boolean showFPS = false;
-    private boolean oneFrameTwoTicks = true;
+    private final boolean oneFrameTwoTicks = true;
     private boolean battIndicator = false;
     private int batLevel;
     
@@ -952,6 +954,13 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
         isStopping = true;
         isFirstStart = false;
         uninterestingDebug = false;
+
+        try {
+			Records.saveRecord("Records", points, 9);
+		} catch (Exception ex) {
+			Platform.showError("Can't save record:", ex);
+		}
+
         final GameplayCanvas inst = this;
         Runnable stopperRunnable = new Runnable() {
             public void run() {
