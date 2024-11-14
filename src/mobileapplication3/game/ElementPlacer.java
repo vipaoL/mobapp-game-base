@@ -22,9 +22,9 @@ public class ElementPlacer {
     public static final short LEVEL_FINISH = 10;
 
     private int lineCount;
-    private GraphicsWorld w;
-    private Landscape landscape;
-    private boolean dontPlaceBodies;
+    private final GraphicsWorld w;
+    private final Landscape landscape;
+    private final boolean dontPlaceBodies;
 
     public ElementPlacer(GraphicsWorld world, boolean dontPlaceBodies) {
         lineCount = 0;
@@ -39,96 +39,108 @@ public class ElementPlacer {
 
     public void place(short[] data, int originX, int originY) {
         short id = data[0];
-        if (id == LINE) {
-            line(originX + data[1], originY + data[2], originX + data[3], originY + data[4]);
-        } else if (id == CIRCLE) {
-            arc(originX + data[1], originY + data[2], data[3], data[4], data[5], data[6] / 10, data[7] / 10);
-        } else if (id == BROKEN_LINE && !dontPlaceBodies) {
-            int x1 = data[1];
-            int y1 = data[2];
-            int x2 = data[3];
-            int y2 = data[4];
-            int dx = x2 - x1;
-            int dy = y2 - y1;
-            int platfH = data[5];
-            int platfL = data[6];
-            int spacing = data[7];
-            int l = data[8];
-            int ang = data[9];
-            int n = (l + spacing) / (platfL+spacing);
+        switch (id) {
+            case LINE:
+                line(originX + data[1], originY + data[2], originX + data[3], originY + data[4]);
+                break;
+            case CIRCLE:
+                arc(originX + data[1], originY + data[2], data[3], data[4], data[5], data[6] / 10, data[7] / 10);
+                break;
+            case BROKEN_LINE:
+                if (!dontPlaceBodies) {
+                    int x1 = data[1];
+                    int y1 = data[2];
+                    int x2 = data[3];
+                    int y2 = data[4];
+                    int dx = x2 - x1;
+                    int dy = y2 - y1;
+                    int platfH = data[5];
+                    int platfL = data[6];
+                    int spacing = data[7];
+                    int l = data[8];
+                    int ang = data[9];
+                    int n = (l + spacing) / (platfL + spacing);
 
-            Shape rect = Shape.createRectangle(platfL, platfH);
-            rect.setMass(1);
-            rect.setFriction(10);
-            rect.setElasticity(0);
-            dx/=(l/platfL);
-            int spX = spacing * dx / l; // TODO fix this mess (the editor should be fixed too, it will be a new mgstruct format version)
-            dy/=(l/platfL);
-            int spY = spacing * dy / l;
-            int offsetX = platfL/2 * Mathh.cos(ang) / 1000;
-            int offsetY = platfL/2 * Mathh.sin(ang) / 1000;
+                    Shape rect = Shape.createRectangle(platfL, platfH);
+                    rect.setMass(1);
+                    rect.setFriction(10);
+                    rect.setElasticity(0);
+                    dx /= (l / platfL);
+                    int spX = spacing * dx / l; // TODO fix this mess (the editor should be fixed too, it will be a new mgstruct format version)
+                    dy /= (l / platfL);
+                    int spY = spacing * dy / l;
+                    int offsetX = platfL / 2 * Mathh.cos(ang) / 1000;
+                    int offsetY = platfL / 2 * Mathh.sin(ang) / 1000;
 
-            for (int i = 0; i < n; i++) {
-                Body fallinPlatf = new Body(originX + x1 + i*(dx+spX) + offsetX, originY + y1 + i*(dy+spY) + offsetY, rect, false);
-                fallinPlatf.setRotation2FX(FXUtil.TWO_PI_2FX / 360 * ang);
-                fallinPlatf.setUserData(new MUserData(MUserData.TYPE_FALLING_PLATFORM, new short[] {20}));
-                w.addBody(fallinPlatf);
+                    for (int i = 0; i < n; i++) {
+                        Body fallinPlatf = new Body(originX + x1 + i * (dx + spX) + offsetX, originY + y1 + i * (dy + spY) + offsetY, rect, false);
+                        fallinPlatf.setRotation2FX(FXUtil.TWO_PI_2FX / 360 * ang);
+                        fallinPlatf.setUserData(new MUserData(MUserData.TYPE_FALLING_PLATFORM, new short[]{20}));
+                        w.addBody(fallinPlatf);
+                    }
+                    updateLowestY(Math.max(y1, y2) + platfH);
+                }
+                break;
+            case BROKEN_CIRCLE:
+                // not implemented yet
+                arc(originX + data[1], originY + data[2], data[3], 360, 0);
+                break;
+            case SINE:
+                sin(originX + data[1], originY + data[2], data[3], data[4], data[5], data[6]);
+                break;
+            case ACCELERATOR: {
+                int x = originX + data[1];
+                int y = originY + data[2];
+                int l = data[3];
+                int thickness = data[4];
+                int ang = data[5];
+
+                short effectID = GameplayCanvas.EFFECT_SPEED;
+                short effectDuration = data[8];
+                short directionOffset = data[6];
+                short speedMultiplier = data[7];
+
+                int centerX = x + l * Mathh.cos(ang) / 2000;
+                int centerY = y + l * Mathh.sin(ang) / 2000;
+
+                int colorModifier = (speedMultiplier - 100) * 3;
+                int red = Math.min(255, Math.max(0, colorModifier));
+                int blue = Math.min(255, Math.max(0, -colorModifier));
+                int green = blue;
+                if (red < 50 && blue < 50) {
+                    red = 50;
+                    blue = 50;
+                }
+
+                int color = ((red & 0xff) << 16) | ((green & 0xff) << 8) | (blue & 0xff);
+                Shape plate = Shape.createRectangle(l, thickness);
+                Body pressurePlate = new Body(centerX, centerY, plate, false);
+                MUserData mUserData = new MUserData(MUserData.TYPE_ACCELERATOR, new short[]{effectID, effectDuration, directionOffset, speedMultiplier});
+                mUserData.color = color;
+                pressurePlate.setUserData(mUserData);
+                //Main.log(pressurePlate.getUserData().bodyType);
+                pressurePlate.setRotation2FX(FXUtil.TWO_PI_2FX / 360 * ang);
+                w.addBody(pressurePlate);
+                updateLowestY(y + Math.max(l, thickness));
+                break;
             }
-            updateLowestY(Math.max(y1, y2) + platfH);
-        } else if (id == BROKEN_CIRCLE) {
-            // not implemented yet
-            arc(originX + data[1], originY + data[2], data[3], 360, 0);
-        } else if (id == SINE) {
-            sin(originX + data[1], originY + data[2], data[3], data[4], data[5], data[6]);
-        } else if (id == ACCELERATOR) {
-            int x = originX + data[1];
-            int y = originY + data[2];
-            int l = data[3];
-            int thickness = data[4];
-            int ang = data[5];
+            case LEVEL_FINISH: {
+                int x = originX + data[1];
+                int y = originY + data[2];
+                int l = data[3];
+                int thickness = data[4];
+                int ang = data[5];
 
-            short effectID = GameplayCanvas.EFFECT_SPEED;
-            short effectDuration = data[8];
-            short directionOffset = data[6];
-            short speedMultiplier = data[7];
-
-            int centerX = x + l * Mathh.cos(ang) / 2000;
-            int centerY = y + l * Mathh.sin(ang) / 2000;
-
-            int colorModifier = (speedMultiplier - 100) * 3;
-            int red = Math.min(255, Math.max(0, colorModifier));
-            int blue = Math.min(255, Math.max(0, -colorModifier));
-            int green = blue;
-            if (red < 50 && blue < 50) {
-                red = 50;
-                blue = 50;
+                Shape plate = Shape.createRectangle(l, thickness);
+                Body pressurePlate = new Body(x, y, plate, false);
+                MUserData mUserData = new MUserData(MUserData.TYPE_LEVEL_FINISH, null);
+                pressurePlate.setUserData(mUserData);
+                //Main.log(pressurePlate.getUserData().bodyType);
+                pressurePlate.setRotation2FX(FXUtil.TWO_PI_2FX / 360 * ang);
+                w.addBody(pressurePlate);
+                updateLowestY(y + Math.max(l, thickness));
+                break;
             }
-
-            int color = ((red & 0xff) << 16) | ((green & 0xff) << 8) | (blue & 0xff);
-            Shape plate = Shape.createRectangle(l, thickness);
-            Body pressurePlate = new Body(centerX, centerY, plate, false);
-            MUserData mUserData = new MUserData(MUserData.TYPE_ACCELERATOR, new short[] {effectID, effectDuration, directionOffset, speedMultiplier});
-            mUserData.color = color;
-            pressurePlate.setUserData(mUserData);
-            //Main.log(pressurePlate.getUserData().bodyType);
-            pressurePlate.setRotation2FX(FXUtil.TWO_PI_2FX / 360 * ang);
-            w.addBody(pressurePlate);
-            updateLowestY(y + Math.max(l, thickness));
-        } else if (id == LEVEL_FINISH) {
-            int x = originX + data[1];
-            int y = originY + data[2];
-            int l = data[3];
-            int thickness = data[4];
-            int ang = data[5];
-
-            Shape plate = Shape.createRectangle(l, thickness);
-            Body pressurePlate = new Body(x, y, plate, false);
-            MUserData mUserData = new MUserData(MUserData.TYPE_LEVEL_FINISH, null);
-            pressurePlate.setUserData(mUserData);
-            //Main.log(pressurePlate.getUserData().bodyType);
-            pressurePlate.setRotation2FX(FXUtil.TWO_PI_2FX / 360 * ang);
-            w.addBody(pressurePlate);
-            updateLowestY(y + Math.max(l, thickness));
         }
         Logger.log("lowestY=", w.lowestY);
     }
