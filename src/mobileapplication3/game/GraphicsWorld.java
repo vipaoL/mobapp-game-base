@@ -310,12 +310,16 @@ public class GraphicsWorld extends World {
                 if (userData instanceof MUserData) {
                     MUserData mUserData = (MUserData) userData;
                     int bodyType = mUserData.bodyType;
-                    if (bodyType == MUserData.TYPE_ACCELERATOR) {
-                        g.setColor(mUserData.color);
-                    } else if (bodyType == MUserData.TYPE_LEVEL_FINISH) {
-                        g.setColor(0x00ff00);
-                    } else {
-                        g.setColor(currColBodies);
+                    switch (bodyType) {
+                        case MUserData.TYPE_ACCELERATOR:
+                            g.setColor(mUserData.color);
+                            break;
+                        case MUserData.TYPE_LEVEL_FINISH:
+                            g.setColor(0x00ff00);
+                            break;
+                        default:
+                            g.setColor(currColBodies);
+                            break;
                     }
                 } else {
                     g.setColor(currColBodies);
