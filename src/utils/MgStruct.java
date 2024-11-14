@@ -36,7 +36,7 @@ public class MgStruct {
      * 9 - level start
      * 10 - level finish
      */
-    static int[] argsNumber = {0, /*1*/2, /*2*/4, /*3*/7, /*4*/9, /*5*/10, /*6*/6, /*7*/8, /*8*/8, /*9*/2, /*10*/5};
+    static int[] argsNumber = {0, /*1*/2, /*2*/4, /*3*/7, /*4*/9, /*5*/10, /*6*/6, /*7*/8, /*8*/6, /*9*/2, /*10*/5};
     static final int STRUCTURE_STORAGE_SIZE = 32;
 
     public static short[][][] structStorage = new short[STRUCTURE_STORAGE_SIZE][][];

@@ -15,6 +15,7 @@ public class MUserData implements UserData {
         public static final int TYPE_FALLING_PLATFORM = 10;
         public static final int TYPE_ACCELERATOR = 11;
         public static final int TYPE_LEVEL_FINISH = 12;
+        public static final int TYPE_TRAMPOLINE = 13;
         public String string;
         public int i = 1;
         public int bodyType = -1;

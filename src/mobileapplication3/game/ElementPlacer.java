@@ -124,6 +124,24 @@ public class ElementPlacer {
                 updateLowestY(y + Math.max(l, thickness));
                 break;
             }
+            case TRAMPOLINE: {
+                int x = originX + data[1];
+                int y = originY + data[2];
+                int l = data[3];
+                int thickness = data[4];
+                int ang = data[5];
+                int elasticity = data[6];
+
+                Shape plate = Shape.createRectangle(l, thickness);
+                plate.setElasticity(elasticity);
+                Body pressurePlate = new Body(x, y, plate, false);
+                MUserData mUserData = new MUserData(MUserData.TYPE_TRAMPOLINE, null);
+                pressurePlate.setUserData(mUserData);
+                pressurePlate.setRotation2FX(FXUtil.TWO_PI_2FX / 360 * ang);
+                w.addBody(pressurePlate);
+                updateLowestY(y + Math.max(l, thickness));
+                break;
+            }
             case LEVEL_FINISH: {
                 int x = originX + data[1];
                 int y = originY + data[2];

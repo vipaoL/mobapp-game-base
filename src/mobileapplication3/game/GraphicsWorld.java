@@ -314,6 +314,9 @@ public class GraphicsWorld extends World {
                         case MUserData.TYPE_ACCELERATOR:
                             g.setColor(mUserData.color);
                             break;
+                        case MUserData.TYPE_TRAMPOLINE:
+                            g.setColor(0xffaa00);
+                            break;
                         case MUserData.TYPE_LEVEL_FINISH:
                             g.setColor(0x00ff00);
                             break;
