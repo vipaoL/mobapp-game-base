@@ -5,6 +5,7 @@
  */
 package mobileapplication3.game;
 
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -23,14 +24,41 @@ import utils.MgStruct;
  */
 public class Levels extends GenericMenu implements Runnable {
 
+    private static final String LEVELS_FOLDER_NAME = "MobappGame/Levels";
+
     private String[] levelPaths = new String[0];
     private String[] buttons;
-    
-    public static final String LEVELS_FOLDER_NAME = "MobappGame/Levels";
-    
+
+    private int builtinLevelsCount = 0;
+
     public Levels() {
         Logger.log("Levels:constr");
         buttons = new String[2];
+        builtinLevelsCount = seekForLevelsInRes();
+        if (builtinLevelsCount > 0) {
+            buttons = new String[builtinLevelsCount + 3];
+            buttons[0] = "Levels";
+            for (int i = 1; i <= builtinLevelsCount; i++) {
+                buttons[i] = "Level " + i;
+            }
+            buttons[buttons.length - 2] = "Load custom level";
+        } else {
+            seekForLevelsInFS();
+        }
+        // TODO: separate with pages -----------------------!
+        refreshButtons();
+    }
+
+    private void refreshButtons() {
+        buttons[buttons.length-1] = "Back";
+        loadParams(buttons, 1, buttons.length - 1, buttons.length - 1);
+        if (w != 0 && h != 0) {
+            loadCanvasParams(x0, y0, w, h);
+        }
+    }
+
+    private void seekForLevelsInFS() {
+        builtinLevelsCount = 0;
         try {
             levelPaths = getLevels();
             buttons = new String[levelPaths.length + 2];
@@ -42,11 +70,53 @@ public class Levels extends GenericMenu implements Runnable {
             e.printStackTrace();
             buttons[0] = e.toString();
         }
-    	buttons[0] = "Load emini \".phy\" world";
-        // TODO: separate with pages -----------------------!
-        buttons[buttons.length-1] = "Back";
-        loadParams(buttons, 1, buttons.length - 1, buttons.length - 1);
-	}
+        buttons[0] = "Load emini \".phy\" world";
+        refreshButtons();
+    }
+
+    private int seekForLevelsInRes() {
+        int c = 0;
+        for (int i = 1; tryRes(getLevelResPath(i)); i++) {
+            Logger.log(getLevelResPath(i));
+            c++;
+        }
+        return c;
+    }
+
+    private String getLevelResPath(int i) {
+        return "/l" + i + ".mglvl";
+    }
+
+    public boolean tryRes(String path) {
+        InputStream is = null;
+        try {
+            is = Platform.getResource(path);
+            DataInputStream dis = new DataInputStream(is);
+            dis.readShort();
+            return true;
+        } catch (Exception ex) {
+            Logger.log(path + " " + ex);
+            return false;
+        } finally {
+            try {
+                is.close();
+            } catch (Exception ex) { }
+        }
+    }
+
+    private void openFromRes(String path) {
+        InputStream is = null;
+        try {
+            is = Platform.getResource(path);
+            RootContainer.setRootUIComponent(openLevel(new DataInputStream(is)));
+        } catch (Exception ex) {
+            Platform.showError("Can't open level!", ex);
+        } finally {
+            try {
+                is.close();
+            } catch (Exception ex) { }
+        }
+    }
 
     public void init() {
         isStopped = false;
@@ -66,7 +136,7 @@ public class Levels extends GenericMenu implements Runnable {
                 if (path.endsWith(".phy")) {
                     gameCanvas = new GameplayCanvas(readWorldFile(path));
                 } else if (path.endsWith(".mglvl")) {
-                    gameCanvas = loadLevel(path);
+                    gameCanvas = openLevel(path);
                 }
                 if (gameCanvas != null) {
                     RootContainer.setRootUIComponent(gameCanvas);
@@ -76,11 +146,15 @@ public class Levels extends GenericMenu implements Runnable {
         })).start();
     }
 
-    private static GameplayCanvas loadLevel(String path) {
+    private static GameplayCanvas openLevel(String path) {
+        return openLevel(FileUtils.fileToDataInputStream(path));
+    }
+
+    private static GameplayCanvas openLevel(DataInputStream dis) {
         try {
-            short[][] structure = MgStruct.readFromDataInputStream(FileUtils.fileToDataInputStream(path));
-            if (structure != null) {
-                return new GameplayCanvas(new GraphicsWorld()).loadLevel(structure);
+            short[][] level = MgStruct.readFromDataInputStream(dis);
+            if (level != null) {
+                return new GameplayCanvas(new GraphicsWorld()).loadLevel(level);
             }
         } catch (IOException ex) {
             Platform.showError(ex);
@@ -102,14 +176,21 @@ public class Levels extends GenericMenu implements Runnable {
             isStopped = true;
             RootContainer.setRootUIComponent(new MenuCanvas());
         } else {
-            try {
-                startLevel(levelPaths[selected - 1]);
-            } catch (Exception ex) {
-                Platform.showError(ex);
+            if (builtinLevelsCount > 0) {
+                if (selected == buttons.length - 2) {
+                    seekForLevelsInFS();
+                } else {
+                    openFromRes(getLevelResPath(selected));
+                }
+            } else {
+                try {
+                    startLevel(levelPaths[selected - 1]);
+                } catch (Exception ex) {
+                    Platform.showError(ex);
+                }
             }
         }
     }
-    
 
     public void run() {
         Logger.log("Levels:run()");

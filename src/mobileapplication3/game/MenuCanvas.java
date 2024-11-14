@@ -22,7 +22,7 @@ public class MenuCanvas extends GenericMenu implements Runnable {
     		"",
     		"Play",
     		"Load Structures",
-    		"Load World",
+    		"Levels",
     		"Editor",
     		"Records",
     		"Settings",

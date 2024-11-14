@@ -12,6 +12,8 @@ import mobileapplication3.platform.FileUtils;
  * @author vipaol
  */
 public class GameFileUtils {
+    public static final short[] SUPPORTED_FILE_FORMAT_VERSIONS = {0, 1};
+
     private GameFileUtils() { }
     
     public static String[] listFilesInAllPlaces(String folderName) {

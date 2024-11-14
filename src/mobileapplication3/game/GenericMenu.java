@@ -22,8 +22,8 @@ import mobileapplication3.ui.Keys;
  */
 public abstract class GenericMenu extends CanvasComponent {
     private static final int PAUSE_DELAY = 5;
-    public int w, h;
-    private int x0, y0, fontH, tick = 0, k = 10, keyPressDelay = 0,
+    public int x0, y0, w, h;
+    private int fontH, tick = 0, k = 10, keyPressDelay = 0,
             keyPressDelayAfterShowing = 5, firstReachable, lastReachable,
             firstDrawable = 0, specialOption = -1, pauseDelay = PAUSE_DELAY, lastKeyCode = 0;
     

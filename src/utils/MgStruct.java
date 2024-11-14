@@ -21,8 +21,6 @@ import mobileapplication3.platform.Utils;
  */
 public class MgStruct {
 
-    static final short[] SUPPORTED_FILE_FORMAT_VERSIONS = {0, 1};
-    
     /*
      * 0 - end of file
      * 1 - end point
@@ -132,7 +130,7 @@ public class MgStruct {
 
         try {
             short fileFormatVersion = dis.readShort(); // read file format version
-            if (isArrContain(SUPPORTED_FILE_FORMAT_VERSIONS, fileFormatVersion)) {
+            if (Utils.isArrContain(GameFileUtils.SUPPORTED_FILE_FORMAT_VERSIONS, fileFormatVersion)) {
                 // number of primitives in the structure
                 int length = 16;
                 if (fileFormatVersion > 0) {
@@ -198,14 +196,5 @@ public class MgStruct {
     		return newArray;
     	}
     	return array;
-    }
-    
-    static boolean isArrContain(short[] arr, short a) {
-        for (int i = 0; i < arr.length; i++) {
-            if (arr[i] == a) {
-                return true;
-            }
-        }
-        return false;
     }
 }
