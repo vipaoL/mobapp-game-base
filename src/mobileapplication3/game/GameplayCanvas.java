@@ -33,6 +33,7 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
     private static final String[] PAUSE_HINT = {"PAUSE:", "here(touch), *,", "B, right soft"};
     public static final short EFFECT_SPEED = 0;
     private static final int BATT_UPD_PERIOD = 10000;
+	private static final int GAME_MODE_ENDLESS = 1, GAME_MODE_LEVEL = 2;
     
     // to prevent siemens' bug which calls hideNotify right after showing canvas
     private static final int PAUSE_DELAY = 5;
@@ -40,6 +41,7 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
     private boolean previousPauseState = false;
     
     // state and mode
+	private int gameMode = GAME_MODE_ENDLESS;
     private static boolean isFirstStart = true; // for displaying hints only on first start
     public static boolean isBusy = false;
     public static boolean uninterestingDebug = false;
@@ -131,6 +133,7 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
 	}
 
 	public GameplayCanvas loadLevel(short[][] structure) {
+		gameMode = GAME_MODE_LEVEL;
 		StructurePlacer.place(world, false, structure, 0, 0);
 		if (structure[0][0] == ElementPlacer.LEVEL_START) {
 			carSpawnX = structure[0][1];
@@ -958,10 +961,12 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
         isFirstStart = false;
         uninterestingDebug = false;
 
-        try {
-			Records.saveRecord("Records", points, 9);
-		} catch (Exception ex) {
-			Platform.showError("Can't save record:", ex);
+		if (gameMode == GAME_MODE_ENDLESS) {
+			try {
+				Records.saveRecord("Records", points, 9);
+			} catch (Exception ex) {
+				Platform.showError("Can't save record:", ex);
+			}
 		}
 
         final GameplayCanvas inst = this;
