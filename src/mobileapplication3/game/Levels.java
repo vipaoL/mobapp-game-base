@@ -26,6 +26,8 @@ public class Levels extends GenericMenu implements Runnable {
 
     private static final String LEVELS_FOLDER_NAME = "MobappGame/Levels";
 
+    private static int defaultSelected = 1; // currently selected option in menu
+
     private String[] levelPaths = new String[0];
     private String[] buttons;
 
@@ -51,7 +53,9 @@ public class Levels extends GenericMenu implements Runnable {
 
     private void refreshButtons() {
         buttons[buttons.length-1] = "Back";
-        loadParams(buttons, 1, buttons.length - 1, buttons.length - 1);
+        defaultSelected = Math.min(defaultSelected, buttons.length - 1);
+        loadParams(buttons, 1, buttons.length - 1, defaultSelected);
+        selected = defaultSelected;
         if (w != 0 && h != 0) {
             loadCanvasParams(x0, y0, w, h);
         }
@@ -172,6 +176,7 @@ public class Levels extends GenericMenu implements Runnable {
     }
     
     public void selectPressed() {
+        defaultSelected = selected;
         if (selected == buttons.length - 1) {
             isStopped = true;
             RootContainer.setRootUIComponent(new MenuCanvas());
