@@ -575,6 +575,9 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
 								showPopup(new LevelCompletedScreen(this));
 							}
 							break;
+						case MUserData.TYPE_LAVA:
+							world.destroyCar();
+							break;
                     }
                 }
             }

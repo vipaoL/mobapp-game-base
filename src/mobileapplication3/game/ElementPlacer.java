@@ -20,6 +20,7 @@ public class ElementPlacer {
     public static final short TRAMPOLINE = 8;
     public static final short LEVEL_START = 9;
     public static final short LEVEL_FINISH = 10;
+    public static final short LAVA = 11;
 
     private int lineCount;
     private final GraphicsWorld w;
@@ -154,6 +155,22 @@ public class ElementPlacer {
                 MUserData mUserData = new MUserData(MUserData.TYPE_LEVEL_FINISH, null);
                 pressurePlate.setUserData(mUserData);
                 //Main.log(pressurePlate.getUserData().bodyType);
+                pressurePlate.setRotation2FX(FXUtil.TWO_PI_2FX / 360 * ang);
+                w.addBody(pressurePlate);
+                updateLowestY(y + Math.max(l, thickness));
+                break;
+            }
+            case LAVA: {
+                int x = originX + data[1];
+                int y = originY + data[2];
+                int l = data[3];
+                int thickness = data[4];
+                int ang = data[5];
+
+                Shape plate = Shape.createRectangle(l, thickness);
+                Body pressurePlate = new Body(x, y, plate, false);
+                MUserData mUserData = new MUserData(MUserData.TYPE_LAVA, null);
+                pressurePlate.setUserData(mUserData);
                 pressurePlate.setRotation2FX(FXUtil.TWO_PI_2FX / 360 * ang);
                 w.addBody(pressurePlate);
                 updateLowestY(y + Math.max(l, thickness));

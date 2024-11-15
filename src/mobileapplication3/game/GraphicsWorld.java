@@ -320,6 +320,9 @@ public class GraphicsWorld extends World {
                         case MUserData.TYPE_LEVEL_FINISH:
                             g.setColor(0x00ff00);
                             break;
+                        case MUserData.TYPE_LAVA:
+                            g.setColor(0xff5500);
+                            break;
                         default:
                             g.setColor(currColBodies);
                             break;
