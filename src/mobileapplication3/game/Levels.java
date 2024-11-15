@@ -113,6 +113,7 @@ public class Levels extends GenericMenu implements Runnable {
         try {
             is = Platform.getResource(path);
             RootContainer.setRootUIComponent(openLevel(new DataInputStream(is)));
+            isStopped = true;
         } catch (Exception ex) {
             Platform.showError("Can't open level!", ex);
         } finally {
