@@ -59,12 +59,11 @@ public class AboutScreen extends GenericMenu implements Runnable {
 
         scW = w;
         scH = h;
-        qrSide = scH - fontH * (STRINGS.length + MENU_OPTS.length + 6);
-        qrSide = Math.max(66, qrSide);
+        qrSide = scH - fontH * (STRINGS.length + MENU_OPTS.length + 3);
+        qrSide = Math.max(qrSide, 66);
+        qrSide = Math.min(qrSide, w*7/8);
+
         margin = fontH/2;
-        if (qrSide > scW - margin*2) {
-            qrSide = scW - margin*2;
-        }
 
         int headerAndQrH = drawHeaderAndQR(null);
         int menuH = scH - headerAndQrH;
@@ -186,7 +185,6 @@ public class AboutScreen extends GenericMenu implements Runnable {
             }
         }
         offset += qrSide;
-        offset += margin;
         return offset;
     }
     
