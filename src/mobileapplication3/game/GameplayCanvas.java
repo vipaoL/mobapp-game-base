@@ -49,7 +49,7 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
     public static boolean isWaiting = false;
     private boolean isWorldLoaded = false;
     private int hintVisibleTimer = 120; // in ticks
-    private boolean unlimitFPS = true;
+    private boolean limitFPS = false;
     private boolean showFPS = false;
     private boolean battIndicator = false;
     private int batLevel;
@@ -69,7 +69,7 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
 	public int carSpawnX = 100;
 	public int carSpawnY = -400;
     // motor state
-    private boolean accel = false;
+    private boolean motorTurnedOn = false;
 
     // indicators
     private int flipIndicator = 255; // for blinking counter when flip done
@@ -92,7 +92,7 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
     public static int timeFlying = 10;
     private int ticksMotorTurnedOff = 50;
     private long lastBigTickTime;
-    private int tick = 0;
+    private int bgTick = 0;
     private int framesFromLastFPSMeasure = 0;
     private int ticksFromLastTPSMeasure = 0;
     
@@ -256,6 +256,7 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
             while (!stopped) {
             	try {
 	                if (!paused) {
+	                	// FPS & TPS counter
 	                	int dtFromLastFPSMeasure = (int) (System.currentTimeMillis() - lastFPSMeasureTime);
 	                	if (dtFromLastFPSMeasure > 1000) {
 	                		lastFPSMeasureTime = System.currentTimeMillis();
@@ -265,9 +266,10 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
 	                		ticksFromLastTPSMeasure = 0;
 	                	}
 
+	                	// Adjust physics engine tick time to current TPS
 	                    if (!wasPaused) {
 	                        tickTime = (int) (System.currentTimeMillis() - start);
-	                        if (unlimitFPS) {
+	                        if (!limitFPS) {
 	                            world.setTimestepFX(baseTimestepFX * Mathh.constrain(1, (tickTime + prevTickTime + 1) / 2, 100) / 50);
 	                        }
 	                    } else {
@@ -275,30 +277,27 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
 	                    }
 
 						prevTickTime = tickTime;
-	
 	                    start = System.currentTimeMillis();
-	                    boolean bigTick = false;
-	                    if (!unlimitFPS || start - lastBigTickTime > TICK_DURATION) {
-	                    	lastBigTickTime = start;
-	                    	bigTick = true;
-	                    }
 	
+	                    // Tick and draw
 	                    isBusy = true;
 	                    setSimulationArea();
 	                    world.tick();
 	                    paint();
 	                    isBusy = false;
 	
-	                    // check if car contacts with the ground or with something else
+	                    // Check if the car contacts with the ground or with something else
 	                    Contact[][] carContacts = getCarContacts();
-                        // car
+
+	                    // Check if the car contacts with custom bodies (accelerators, falling platforms, ...)
+	                    tickCustomBodyInteractions(carContacts);
+
                         boolean leftWheelContacts = carContacts[0][0] != null;
                         boolean rightWheelContacts = carContacts[1][0] != null;
                         boolean carBodyContacts = carContacts[2][0] != null;
 	                    
-	                    tickCustomBodyInteractions(carContacts);
-	                    
 	                    // some things should be performed once at a fixed interval (50ms, or 20 times per second)
+	                    boolean bigTick = limitFPS || start - lastBigTickTime > TICK_DURATION;
 	                    if (bigTick) {
 		                    if ((!leftWheelContacts && !rightWheelContacts)) {
 		                        timeFlying += 1;
@@ -306,14 +305,17 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
 		                        timeFlying = 0;
 		                    }
 	
+		                    // Hide keyboard/touch buttons hint
 		                    if (isWorldLoaded) {
 	                            hintVisibleTimer--;
 	                        }
 	
+		                    // Prevent pause right after resume to work around some Siemens bug
 	                        if (pauseDelay > 0) {
 	                            pauseDelay--;
 	                        }
 	
+	                        // flip counter
 	                        if (WorldGen.isEnabled) {
 	                            // highlight the score counter on flip
 	                            if (flipIndicator < 255) {
@@ -324,17 +326,21 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
 	                            }
 	                            flipCounter.tick();
 	                        }
-	
+
+	                        // move the car to the right in the simulation mode
 	                        if (DebugMenu.simulationMode) {
 	                            world.carbody.translate(new FXVector(FXUtil.ONE_FX*100, 0), 0);
 	                            world.leftwheel.translate(new FXVector(FXUtil.ONE_FX*100, 0), 0);
 	                            world.rightwheel.translate(new FXVector(FXUtil.ONE_FX*100, 0), 0);
 	                        }
 	
+	                        // tick effect timers (speed, slowness, ...)
 	                        tickEffects();
 	
+	                        // distribute some tasks over the ticks to offload the CPU
 	                        if (bigTickN < 3) {
 	                        	if (bigTickN == 1) {
+	                        		// tick the timers of falling platforms, removing bodies felt out of the world
 	                        		world.tickCustomBodies();
 	                        	}
 
@@ -347,20 +353,20 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
 	                            	lastBattUpdateTime = System.currentTimeMillis();
 	                            }
 	                        }
+	                        lastBigTickTime = start;
 	                    }
 	
 	                    // getting car angle
 	                    carAngle = 360 - FXUtil.angleInDegrees2FX(world.carbody.rotation2FX());
 	
-	                    // when the motor is turned on
+	                    // Gas and brake
 						boolean isFlying = timeFlying <= 2;
-						if (accel) {
+						if (motorTurnedOn) {
 	                        ticksMotorTurnedOff = 0;
+	                        // apply motor force when on the ground
 	                        if (isFlying || uninterestingDebug) {
-	                            // apply motor force when on the ground
-	
 	                        	// set motor power according to car speed
-	                            // (fast start and saving limited speed)
+	                            // (start quickly and limit max speed)
 	                            FXVector velFX = world.carbody.velocityFX();
 	                            int vX = velFX.xAsInt();
 	                            int vY = velFX.yAsInt();
@@ -420,7 +426,7 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
 	                            }
 	                        }
 	                    } else {
-	                        // brake for two seconds after motor turning off
+	                        // brake for two seconds after the motor is turned off
 	                        if (ticksMotorTurnedOff < 40 && !uninterestingDebug) {
 	                            try {
 	                                if (world.carbody.angularVelocity2FX() > 0) {
@@ -440,12 +446,6 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
 	                            }
 	                        }
 	                    }
-
-                        if (tick < 3) {
-	                    	tick++;
-	                    } else {
-	                    	tick = 0;
-	                    }
 	
 	                    while (shouldWait) {
 	                        isWaiting = true;
@@ -464,16 +464,17 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
 	                    sleep = TICK_DURATION - (System.currentTimeMillis() - start);
 	                    sleep = Math.max(sleep, 0);
 	                } else {
-	                    // if paused
+	                    // Pause screen
 	                    wasPaused = true;
 	                    sleep = 200;
 	                    if (isVisible) {
 	                        paint();
 	                    }
 	                }
-	                // fps/tps control
+
+	                // FPS/TPS control
 	                try {
-	                    if (sleep > 0 && (!unlimitFPS || paused)) {
+	                    if ((limitFPS || paused) && sleep > 0) {
 	                        Thread.sleep(sleep);
 	                    } else if (System.currentTimeMillis() == start) {
 	                    	Thread thread = Thread.currentThread();
@@ -521,7 +522,7 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
 	}
     
     private int convertByTimestep(int valueInDefaultTimestep) {
-    	return unlimitFPS ? valueInDefaultTimestep / TICK_DURATION * tickTime : valueInDefaultTimestep;
+    	return limitFPS ? valueInDefaultTimestep : valueInDefaultTimestep / TICK_DURATION * tickTime;
     }
 
 	private int getLowestSafeY() {
@@ -614,11 +615,11 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
     	}
     	world.drawWorld(g);
     	if (world.carY > getLowestSafeY()) {
-    		if (tick % 10 == 0) {
+    		if (bgTick % 10 == 0) {
     			dimColors();
-    			tick = 0;
+    			bgTick = 0;
     		} else {
-    			tick++;
+    			bgTick++;
     		}
     	}
     	return true;
@@ -909,7 +910,7 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
     	}
 
     	gameOver = true;
-    	accel = false;
+    	motorTurnedOn = false;
     	world.destroyCar();
     	dimColors();
     	stop(true, false);
@@ -1053,7 +1054,7 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
         }
 
         // turn off motor
-        accel = false;
+        motorTurnedOn = false;
         if (timeFlying > 0) {
             timeFlying = Math.max(5, timeFlying);
         }
@@ -1084,7 +1085,7 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
 			world.destroyCar();
 		} else {
 			// if not an action button, turn on the motor
-			accel = true;
+			motorTurnedOn = true;
 		}
 
         return true;
@@ -1101,7 +1102,7 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
         } else {
             // if not on buttons, turn on the motor
         	if (!gameOver) {
-        		accel = true;
+        		motorTurnedOn = true;
         	}
         }
         pointerX = x;
@@ -1134,7 +1135,7 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
         pauseTouched = false;
         menuTouched = false;
         // turn off the motor
-        accel = false;
+        motorTurnedOn = false;
         return !gameOver;
     }
 
