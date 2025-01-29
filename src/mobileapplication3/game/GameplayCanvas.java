@@ -51,7 +51,6 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
     private int hintVisibleTimer = 120; // in ticks
     private boolean unlimitFPS = true;
     private boolean showFPS = false;
-    private final boolean oneFrameTwoTicks = true;
     private boolean battIndicator = false;
     private int batLevel;
     
@@ -287,10 +286,7 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
 	                    isBusy = true;
 	                    setSimulationArea();
 	                    world.tick();
-	                    boolean skipThisFrame = tick % 2 != 0 && oneFrameTwoTicks;
-	                    if (!skipThisFrame) {
-	                        paint();
-	                    }
+	                    paint();
 	                    isBusy = false;
 	
 	                    // check if car contacts with the ground or with something else
