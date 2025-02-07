@@ -7,6 +7,7 @@
 package mobileapplication3.game;
 
 import java.util.Random;
+import java.util.Vector;
 
 import at.emini.physics2D.Body;
 import at.emini.physics2D.Constraint;
@@ -30,7 +31,8 @@ public class WorldGen implements Runnable {
     
     private int prevStructRandomId;
     private int nextStructRandomId;
-    public boolean isResettingPosition = false;
+    private boolean isResettingPosition = false;
+    private Vector deferredStructures = null;
     
     private int lastX;
     private int lastY;
@@ -73,6 +75,13 @@ public class WorldGen implements Runnable {
         unlockGameThread("init");
         wgThread = new Thread(this, "wg");
         wgThread.start();
+    }
+
+    public void addDeferredStructure(short[][] structureData) {
+        if (deferredStructures == null) {
+            deferredStructures = new Vector();
+        }
+        deferredStructures.addElement(structureData);
     }
     
     public void run() {
@@ -164,7 +173,7 @@ public class WorldGen implements Runnable {
             nextStructRandomId+=stdStructsNumber + floorWeightInRandom;
         }
 
-        int[] structData;
+        int[] structData; // [endX, endY, lineCount]
         if (lastY > 1000 | lastY < -1000) { // will correct height if it is too high or too low
             Logger.log("correcting height. lastY=", lastY);
             structData = StructurePlacer.floor(w, isResettingPosition, lastX, lastY, 1000 + rand.nextInt(4) * 100, (rand.nextInt(7) - 3) * 100);
@@ -175,36 +184,44 @@ public class WorldGen implements Runnable {
             * 5 - slantedDottedLine, 6..9 - floor, 10 - mgstruct0, 11 - mgstruct1,
             * ...
             */
-            switch(nextStructRandomId) {
-                case 0:
-                    structData = StructurePlacer.arc1(w, isResettingPosition, lastX, lastY, 200 + Math.abs(rand.nextInt()) % 400, 120);
-                    break;
-                case 1:
-                    int halfPeriods = 4 + rand.nextInt(8);
-                    int l = halfPeriods * 180;
-                    int amp = 15;
-                    structData = StructurePlacer.sinStruct(w, isResettingPosition, lastX, lastY, l, halfPeriods, 0, amp);
-                    break;
-                case 2:
-                    structData = StructurePlacer.floorStat(w, isResettingPosition, lastX, lastY, 400 + rand.nextInt(10) * 100);
-                    break;
-                case 3:
-                    structData = StructurePlacer.arc2(w, isResettingPosition, lastX, lastY, 500 + Math.abs(rand.nextInt()) % 500, 20);
-                    break;
-                case 4:
-                    structData = StructurePlacer.abyss(w, isResettingPosition, lastX, lastY, rand.nextInt(6) * 1000);
-                    break;
-                case 5:
-                    int n = rand.nextInt(6) + 5;
-                    structData = StructurePlacer.slantedDottedLine(w, isResettingPosition, lastX, lastY, n);
-                    break;
-                default:
-                    if (Mathh.strictIneq(stdStructsNumber - 1,/*<*/ nextStructRandomId,/*<*/ stdStructsNumber + floorWeightInRandom)) {
-                        structData = StructurePlacer.floor(w, isResettingPosition, lastX, lastY, 400 + rand.nextInt(10) * 100, (rand.nextInt(7) - 3) * 100);
-                    } else {
-                        structData = placeMGStructByRelativeID(nextStructRandomId);
-                    }
-                    break;
+            if (deferredStructures != null && !needSpeed && !deferredStructures.isEmpty()) {
+                structData = StructurePlacer.place(w, isResettingPosition, (short[][]) deferredStructures.elementAt(0), lastX, lastY);
+                deferredStructures.removeElementAt(0);
+                if (deferredStructures.isEmpty()) {
+                    deferredStructures = null;
+                }
+            } else {
+                switch (nextStructRandomId) {
+                    case 0:
+                        structData = StructurePlacer.arc1(w, isResettingPosition, lastX, lastY, 200 + Math.abs(rand.nextInt()) % 400, 120);
+                        break;
+                    case 1:
+                        int halfPeriods = 4 + rand.nextInt(8);
+                        int l = halfPeriods * 180;
+                        int amp = 15;
+                        structData = StructurePlacer.sinStruct(w, isResettingPosition, lastX, lastY, l, halfPeriods, 0, amp);
+                        break;
+                    case 2:
+                        structData = StructurePlacer.floorStat(w, isResettingPosition, lastX, lastY, 400 + rand.nextInt(10) * 100);
+                        break;
+                    case 3:
+                        structData = StructurePlacer.arc2(w, isResettingPosition, lastX, lastY, 500 + Math.abs(rand.nextInt()) % 500, 20);
+                        break;
+                    case 4:
+                        structData = StructurePlacer.abyss(w, isResettingPosition, lastX, lastY, rand.nextInt(6) * 1000);
+                        break;
+                    case 5:
+                        int n = rand.nextInt(6) + 5;
+                        structData = StructurePlacer.slantedDottedLine(w, isResettingPosition, lastX, lastY, n);
+                        break;
+                    default:
+                        if (Mathh.strictIneq(stdStructsNumber - 1,/*<*/ nextStructRandomId,/*<*/ stdStructsNumber + floorWeightInRandom)) {
+                            structData = StructurePlacer.floor(w, isResettingPosition, lastX, lastY, 400 + rand.nextInt(10) * 100, (rand.nextInt(7) - 3) * 100);
+                        } else {
+                            structData = placeMGStructByRelativeID(nextStructRandomId);
+                        }
+                        break;
+                }
             }
         }
         lastX = structData[0];

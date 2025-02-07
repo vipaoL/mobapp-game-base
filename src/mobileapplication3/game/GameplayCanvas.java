@@ -4,6 +4,8 @@
  */
 package mobileapplication3.game;
 
+import java.util.Vector;
+
 import at.emini.physics2D.Body;
 import at.emini.physics2D.Contact;
 import at.emini.physics2D.UserData;
@@ -114,6 +116,8 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
     private Thread gameThread = null;
 	private int baseTimestepFX;
 
+	private Vector deferredStructures = null;
+
     public GameplayCanvas() {
         loadingProgress = 5;
         log("gcanvas constructor");
@@ -129,6 +133,18 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
 		this();
 		this.prevScreen = prevScreen;
 		world = new GraphicsWorld();
+	}
+
+	public GameplayCanvas addDeferredStructure(short[][] structureData) {
+		if (worldgen == null) {
+			if (deferredStructures == null) {
+				deferredStructures = new Vector();
+			}
+			deferredStructures.addElement(structureData);
+		} else {
+			worldgen.addDeferredStructure(structureData);
+		}
+		return this;
 	}
 
 	public GameplayCanvas loadLevel(short[][] structure) {
@@ -152,9 +168,17 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
         log("resetting the world");
         points = 0;
         gameoverCountdown = 0;
+		WorldGen.isEnabled = gameMode == GAME_MODE_ENDLESS;
         if (WorldGen.isEnabled) {
         	log("starting wg");
             worldgen = new WorldGen(world);
+			if (deferredStructures != null) {
+				while (!deferredStructures.isEmpty()) {
+					worldgen.addDeferredStructure((short[][]) deferredStructures.elementAt(0));
+					deferredStructures.removeElementAt(0);
+				}
+				deferredStructures = null;
+			}
             flipCounter = new FlipCounter();
             log("wg started");
         }
@@ -218,7 +242,7 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
                 // re-init an existing world
                 initWorld();
             }
-            
+
             world.refreshScreenParameters(scW, scH);
             
             Logger.setLogMessageDelay(50);
