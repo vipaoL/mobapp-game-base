@@ -129,7 +129,7 @@ public class GraphicsWorld extends World {
         carbodyShape = Shape.createRectangle(carbodyLength, carbodyHeight);
         carbodyShape.setMass(1);
         carbodyShape.setFriction(0);
-        carbodyShape.setElasticity(0);
+        carbodyShape.setElasticity(100);
         carbodyShape.correctCentroid();
         carbody = new Body(spawnX, spawnY, carbodyShape, true);
         carbody.setRotation2FX(ang2FX);
