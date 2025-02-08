@@ -263,7 +263,6 @@ public abstract class GenericMenu extends CanvasComponent {
         lastKeyCode = keyCode;
         isKnownButton = false;
         isPaused = false;
-        Logger.log("pressed:", keyCode);
         boolean pressed = false;
         int selected = -1;
         switch (keyCode) {
