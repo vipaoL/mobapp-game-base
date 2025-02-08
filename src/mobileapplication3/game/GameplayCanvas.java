@@ -36,6 +36,7 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
     public static final short EFFECT_SPEED = 0;
     private static final int BATT_UPD_PERIOD = 10000;
 	private static final int GAME_MODE_ENDLESS = 1, GAME_MODE_LEVEL = 2;
+	private static final int PHYSICS_ITERATIONS = 4;
     
     // to prevent siemens' bug which calls hideNotify right after showing canvas
     private static final int PAUSE_DELAY = 5;
@@ -294,7 +295,7 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
 	                    if (!wasPaused) {
 	                        tickTime = (int) (System.currentTimeMillis() - start);
 	                        if (!limitFPS) {
-	                            world.setTimestepFX(baseTimestepFX * Mathh.constrain(1, (tickTime + prevTickTime + 1) / 2, 100) / 50);
+	                            world.setTimestepFX(baseTimestepFX * Mathh.constrain(1, (tickTime + prevTickTime + 1) / 2, 100) / 50 / PHYSICS_ITERATIONS);
 	                        }
 	                    } else {
 	                        wasPaused = false;
@@ -306,7 +307,10 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
 	                    // Tick and draw
 	                    isBusy = true;
 	                    setSimulationArea();
-	                    world.tick();
+						for (int i = 0; i < PHYSICS_ITERATIONS; i++) {
+							world.tick();
+							ticksFromLastTPSMeasure++;
+						}
 	                    paint();
 	                    isBusy = false;
 	
@@ -480,7 +484,6 @@ public class GameplayCanvas extends CanvasComponent implements Runnable {
 	                            ex.printStackTrace();
 	                        }
 	                    }
-	                    ticksFromLastTPSMeasure++;
 	
 	                    isWaiting = false;
 	                    
