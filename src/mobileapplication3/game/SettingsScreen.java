@@ -6,15 +6,18 @@ import mobileapplication3.platform.ui.RootContainer;
 import utils.MobappGameSettings;
 
 public class SettingsScreen extends GenericMenu implements Runnable {
-    private static String[] menuOpts = {
-            "Better graphics",
-            "Show FPS",
-            "Enable background",
-            "Show battery level",
-            "Debug settings",
-            "About",
-            "Back"
-        };
+    private static final int
+            PHYSICS_PRECISION = 0,
+            DETAIL_LEVEL = 1,
+            HI_RES_GRAPHICS = 2,
+            SHOW_FPS = 3,
+            BG = 4,
+            BATTERY = 5,
+            DEBUG = 6,
+            ABOUT = 7,
+            BACK = 8;
+
+    private static String[] menuOpts = new String[BACK + 1];
         
         // array with states of all buttons (active/inactive/enabled)
         private final int[] statemap = new int[menuOpts.length];
@@ -65,16 +68,28 @@ public class SettingsScreen extends GenericMenu implements Runnable {
         void selectPressed() {
             int selected = this.selected;
             switch (selected) {
-                case 0:
+                case PHYSICS_PRECISION:
+                    int value = MobappGameSettings.getPhysicsPrecision() * 2;
+                    if (value > MobappGameSettings.MAX_PHYSICS_PRECISION) {
+                        value = MobappGameSettings.DYNAMIC_PHYSICS_PRECISION;
+                    } else if (value == MobappGameSettings.DYNAMIC_PHYSICS_PRECISION) {
+                        value = 1;
+                    }
+                    MobappGameSettings.setPhysicsPrecision(value);
+                    break;
+                case DETAIL_LEVEL:
+                    MobappGameSettings.setDetailLevel(MobappGameSettings.getDetailLevel() % MobappGameSettings.MAX_DETAIL_LEVEL + 1);
+                    break;
+                case HI_RES_GRAPHICS:
                     MobappGameSettings.toggleBetterGraphics();
                     break;
-                case 1:
+                case SHOW_FPS:
                 	MobappGameSettings.toggleFPSShown();
                 	break;
-                case 2:
+                case BG:
                 	MobappGameSettings.toggleBG();
                 	break;
-                case 3:
+                case BATTERY:
                 	if (!MobappGameSettings.isBattIndicatorEnabled()) {
                 		if (!Battery.checkAndInit()) {
                 			batFailed = true;
@@ -95,30 +110,45 @@ public class SettingsScreen extends GenericMenu implements Runnable {
                 	}
                 	MobappGameSettings.toggleBattIndicator();
                 	break;
+                case DEBUG:
+                    isStopped = true;
+                    RootContainer.setRootUIComponent(new DebugMenu());
+                    return;
+                case ABOUT:
+                    isStopped = true;
+                    RootContainer.setRootUIComponent(new AboutScreen());
+                    return;
+                case BACK:
+                    isStopped = true;
+                    RootContainer.setRootUIComponent(new MenuCanvas());
+                    return;
                 default:
                     break;
             }
-            if (selected == menuOpts.length - 3) {
-                isStopped = true;
-                RootContainer.setRootUIComponent(new DebugMenu());
-            } else if (selected == menuOpts.length - 2) {
-                isStopped = true;
-                RootContainer.setRootUIComponent(new AboutScreen());
-            } else if (selected == menuOpts.length - 1) {
-                isStopped = true;
-                RootContainer.setRootUIComponent(new MenuCanvas());
-            } else {
-                refreshStates();
-            }
+            refreshStates();
         }
+
         void refreshStates() {
-        	setEnabledFor(MobappGameSettings.isBetterGraphicsEnabled(), 0);
-        	setEnabledFor(MobappGameSettings.isFPSShown(), 1);
-        	setEnabledFor(MobappGameSettings.isBGEnabled(), 2);
+            int physicsPrecision = MobappGameSettings.getPhysicsPrecision();
+            int detailLvl = MobappGameSettings.getDetailLevel();
+            menuOpts[PHYSICS_PRECISION] = "Physics precision: " + (physicsPrecision == 0 ? "Dynamic" : String.valueOf(physicsPrecision));
+            menuOpts[DETAIL_LEVEL] = "Detail level: " + detailLvl;
+            menuOpts[HI_RES_GRAPHICS] = "Graphics for hi-res screens";
+            menuOpts[SHOW_FPS] = "Show FPS";
+            menuOpts[BG] = "Enable background";
+            menuOpts[BATTERY] = "Show battery level";
+            menuOpts[DEBUG] = "Debug settings";
+            menuOpts[ABOUT] = "About";
+            menuOpts[BACK] = "Back";
+            setEnabledFor(physicsPrecision != MobappGameSettings.DEFAULT_PHYSICS_PRECISION, PHYSICS_PRECISION);
+            setEnabledFor(detailLvl != MobappGameSettings.DEFAULT_DETAIL_LEVEL, DETAIL_LEVEL);
+        	setEnabledFor(MobappGameSettings.isBetterGraphicsEnabled(), HI_RES_GRAPHICS);
+        	setEnabledFor(MobappGameSettings.isFPSShown(), SHOW_FPS);
+        	setEnabledFor(MobappGameSettings.isBGEnabled(), BG);
         	if (!batFailed) {
-        		setEnabledFor(MobappGameSettings.isBattIndicatorEnabled(), 3);
+        		setEnabledFor(MobappGameSettings.isBattIndicatorEnabled(), BATTERY);
         	} else {
-        		setStateFor(STATE_INACTIVE, 3);
+        		setStateFor(STATE_INACTIVE, BATTERY);
         	}
         }
     }

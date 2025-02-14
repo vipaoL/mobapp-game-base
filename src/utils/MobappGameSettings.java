@@ -9,10 +9,16 @@ public class MobappGameSettings {
 		    IS_SETUP_WIZARD_COMPLETED = "wizardCompleted",
 			MGSTRUCTS_FOLDER_PATH = "mgPath",
 		    IS_BETTER_GRAPHICS_ENABLED = "btrGr",
+            PHYSICS_PRECISION = "PhyPrecision",
+            DETAIL_LEVEL = "DetailLvl",
 		    SHOW_FPS = "showFPS",
 		    SHOW_BG = "enBG",
 		    BATTERY_INDICATOR = "Batt";
-    
+
+    public static final int DYNAMIC_PHYSICS_PRECISION = 0;
+    public static final int DEFAULT_PHYSICS_PRECISION = DYNAMIC_PHYSICS_PRECISION, DEFAULT_DETAIL_LEVEL = 1;
+    public static final int MAX_PHYSICS_PRECISION = 16, MAX_DETAIL_LEVEL = 3;
+
     private static String mgstructsFolderPath = null;
     
     private static Settings settingsInst = null;
@@ -25,6 +31,8 @@ public class MobappGameSettings {
     	            IS_SETUP_WIZARD_COMPLETED,
     	            MGSTRUCTS_FOLDER_PATH,
     	            IS_BETTER_GRAPHICS_ENABLED,
+                    PHYSICS_PRECISION,
+                    DETAIL_LEVEL,
     	            SHOW_FPS,
     	            SHOW_BG,
     	            BATTERY_INDICATOR
@@ -126,5 +134,25 @@ public class MobappGameSettings {
 
     public static void setIsSetupWizardCompleted(boolean b) {
     	getSettingsInst().set(IS_SETUP_WIZARD_COMPLETED, b);
+    }
+
+    ///
+
+    public static int getPhysicsPrecision() {
+        return getSettingsInst().getInt(PHYSICS_PRECISION, DEFAULT_PHYSICS_PRECISION);
+    }
+
+    public static void setPhysicsPrecision(int value) {
+        getSettingsInst().set(PHYSICS_PRECISION, String.valueOf(value));
+    }
+
+    ///
+
+    public static int getDetailLevel() {
+        return getSettingsInst().getInt(DETAIL_LEVEL, DEFAULT_DETAIL_LEVEL);
+    }
+
+    public static void setDetailLevel(int value) {
+        getSettingsInst().set(DETAIL_LEVEL, String.valueOf(value));
     }
 }

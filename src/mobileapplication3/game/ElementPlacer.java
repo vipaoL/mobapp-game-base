@@ -7,6 +7,7 @@ import at.emini.physics2D.util.FXUtil;
 import at.emini.physics2D.util.FXVector;
 import mobileapplication3.platform.Logger;
 import mobileapplication3.platform.Mathh;
+import utils.MobappGameSettings;
 
 public class ElementPlacer {
     public static final short EOF = 0;
@@ -23,6 +24,7 @@ public class ElementPlacer {
     public static final short LAVA = 11;
 
     private int lineCount;
+    private int detailLevel;
     private final GraphicsWorld w;
     private final Landscape landscape;
     private final boolean dontPlaceBodies;
@@ -32,6 +34,14 @@ public class ElementPlacer {
         w = world;
         landscape = world.getLandscape();
         this.dontPlaceBodies = dontPlaceBodies;
+
+        detailLevel = MobappGameSettings.DEFAULT_DETAIL_LEVEL;
+        try {
+            Logger.log("placer: reading settings");
+            detailLevel = MobappGameSettings.getDetailLevel();
+        } catch (Throwable ex) {
+            ex.printStackTrace();
+        }
     }
 
     public int getLineCount() {
@@ -180,22 +190,21 @@ public class ElementPlacer {
         Logger.log("lowestY=", w.lowestY);
     }
 
-    public void sin(int x, int y, int l, int halfPeriods, int offset, int amp) {    //3
+    public void sin(int x, int y, int l, int halfPeriods, int startAngle, int amp) {    //3
         if (amp == 0) {
             line(x, y, x + l, y);
         } else {
-            int step = 30;
-            int startA = offset;
-            int endA = offset + halfPeriods * 180;
-            int a = endA - startA;
+            int step = 30 / detailLevel / detailLevel;
+            int endAngle = startAngle + halfPeriods * 180;
+            int a = endAngle - startAngle;
 
             int prevPointX = x;
-            int prevPointY = y + amp * Mathh.sin(offset) / 1000;
+            int prevPointY = y + amp * Mathh.sin(startAngle) / 1000;
             int nextPointX;
             int nextPointY;
 
-            for (int i = startA; i <= endA; i+=30) {
-                nextPointX = x + (i - startA)*l/a;
+            for (int i = startAngle; i <= endAngle; i+=step) {
+                nextPointX = x + (i - startAngle)*l/a;
                 nextPointY = y + amp*Mathh.sin(i)/1000;
                 line1(prevPointX, prevPointY, nextPointX, nextPointY);
                 prevPointX = nextPointX;
@@ -204,7 +213,7 @@ public class ElementPlacer {
 
             if (a % step != 0) {
                 nextPointX = x + l;
-                nextPointY = y + amp*Mathh.sin(endA)/1000;
+                nextPointY = y + amp*Mathh.sin(endAngle)/1000;
                 line1(prevPointX, prevPointY, nextPointX, nextPointY);
             }
         }
@@ -214,9 +223,13 @@ public class ElementPlacer {
         arc(x, y, r, ang, of, 10, 10);
     }
     public void arc(int x, int y, int r, int ang, int of, int kx, int ky) { //k: 100 = 1.0
-        // calculated formula. r=20: sn=5,sl=72; r=1000: sn=36,sl=10
-        int sl=10000/(140+r);
-        sl = Math.min(72, Math.max(10, sl));
+        // calculated formula. r=20: sn=5,step=72; r=1000: sn=36,step=10
+        int step = 10000/(140+r);
+        if ((step = step / detailLevel) <= 2) {
+            arcSmooth(x, y, r, ang, of, kx, ky);
+            return;
+        }
+        step = Mathh.constrain( 10 / detailLevel, step, 72 / detailLevel);
 
         while (of < 0) {
             of += 360;
@@ -228,14 +241,44 @@ public class ElementPlacer {
         }
 
         int lastAng = 0;
-        for(int i = 0; i <= ang - sl; i+=sl) {
-            line(x+Mathh.cos(i+of)*kx*r/10000, y+Mathh.sin(i+of)*ky*r/10000, x+Mathh.cos(i+sl+of)*kx*r/10000,y+Mathh.sin(i+sl+of)*ky*r/10000, linesFacing);
-            lastAng = i + sl;
+        for(int i = 0; i <= ang - step; i+=step) {
+            line(x+Mathh.cos(i+of)*kx*r/10000, y+Mathh.sin(i+of)*ky*r/10000, x+Mathh.cos(i+step+of)*kx*r/10000,y+Mathh.sin(i+step+of)*ky*r/10000, linesFacing);
+            lastAng = i + step;
         }
 
-        // close the circle if the angle is not multiple of the step (sl)
-        if (ang % sl != 0) {
+        // close the circle if the angle is not multiple of the step (step)
+        if (ang % step != 0) {
             line(x+Mathh.cos(lastAng+of)*kx*r/10000, y+Mathh.sin(lastAng+of)*ky*r/10000, x+Mathh.cos(ang+of)*kx*r/10000,y+Mathh.sin(ang+of)*ky*r/10000, linesFacing);
+        }
+
+        updateLowestY(y + r);
+    }
+
+    public void arcSmooth(int x, int y, int r, int angle, int startAngle, int kx, int ky) { //k: 100 = 1.0
+        double angleD = Math.PI * angle / 180;
+        double startAngleD = Math.PI * startAngle / 180;
+        // calculated formula. r=20: sn=5,step=72; r=1000: sn=36,step=10
+        double step = Math.PI * 10f/(140+r) / 180 / detailLevel;
+        step = Mathh.constrain( Math.PI * 10f / 180 / detailLevel, step, Math.PI * 72f / 180 / detailLevel);
+
+        while (startAngleD < 0) {
+            startAngleD += Math.PI;
+        }
+
+        int linesFacing = 0;
+        if (angle == 360) {
+            linesFacing = 1; // these lines push bodies only in one direction
+        }
+
+        double lastAng = 0;
+        for(double i = 0; i <= angleD - step; i+=step) {
+            line((int) (x+Math.cos(i+startAngleD)*kx*r/10), (int) (y+Math.sin(i+startAngleD)*ky*r/10), (int) (x+Math.cos(i+step+startAngleD)*kx*r/10), (int) (y+Math.sin(i+step+startAngleD)*ky*r/10), linesFacing);
+            lastAng = i + step;
+        }
+
+        // close the circle if the angle is not multiple of the step (step)
+        if (angleD % step != 0) {
+            line((int) (x+Math.cos(lastAng+startAngleD)*kx*r/10), (int) (y+Math.sin(lastAng+startAngleD)*ky*r/10), (int) (x+Math.cos(angleD+startAngleD)*kx*r/10), (int) (y+Math.sin(angleD+startAngleD)*ky*r/10), linesFacing);
         }
 
         updateLowestY(y + r);
